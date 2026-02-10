@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Native Component Library - Showcase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    .component-preview {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 24px;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .phone-mockup {
+      width: 375px;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .code-block {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+    }
+    .keyword { color: #c792ea; }
+    .string { color: #c3e88d; }
+    .component { color: #82aaff; }
+    .prop { color: #ffcb6b; }
+    .icon-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">📱 React Native Component Library</h1>
+          <p class="text-sm text-gray-600 mt-1">Simple, composable UI components for Expo messenger apps</p>
+        </div>
+        <div class="flex gap-3">
+          <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">TypeScript</span>
+          <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">NativeWind</span>
+          <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">@expo/vector-icons</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="bg-white border-b sticky top-16 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex gap-6 overflow-x-auto py-3">
+        <a href="#icons" class="text-gray-700 hover:text-blue-600 font-medium whitespace-nowrap">Icons</a>
+        <a href="#ui" class="text-gray-700 hover:text-blue-600 font-medium whitespace-nowrap">UI Components</a>
+        <a href="#chat" class="text-gray-700 hover:text-blue-600 font-medium whitespace-nowrap">Chat Components</a>
+        <a href="#layout" class="text-gray-700 hover:text-blue-600 font-medium whitespace-nowrap">Layout Components</a>
+        <a href="#usage" class="text-gray-700 hover:text-blue-600 font-medium whitespace-nowrap">Usage</a>
+        <a href="#structure" class="text-gray-700 hover:text-blue-600 font-medium whitespace-nowrap">Structure</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- Installation -->
+    <section class="mb-12">
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Installation & Setup</h2>
+        <div class="space-y-3">
+          <div class="code-block">
+            <span class="text-gray-400"># Import components and icons from barrel exports</span><br/>
+            <span class="keyword">import</span> { <span class="component">Button</span>, <span class="component">ChatBubble</span>, <span class="component">Screen</span>, <span class="component">SendIcon</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+          </div>
+          <p class="text-sm text-gray-600">All components are fully typed and use NativeWind className for styling. Icons powered by @expo/vector-icons.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Icons Section -->
+    <section id="icons" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">🎨 Icons Library</h2>
+
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <p class="text-sm text-gray-600 mb-4">Pre-configured icons from @expo/vector-icons (Ionicons). Import and use directly in your components.</p>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">←</div>
+            <span class="text-xs font-medium">BackIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">→</div>
+            <span class="text-xs font-medium">SendIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">🔍</div>
+            <span class="text-xs font-medium">SearchIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">☰</div>
+            <span class="text-xs font-medium">MenuIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">✕</div>
+            <span class="text-xs font-medium">CloseIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">⋯</div>
+            <span class="text-xs font-medium">MoreIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">📞</div>
+            <span class="text-xs font-medium">PhoneIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">🎥</div>
+            <span class="text-xs font-medium">VideoIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">📎</div>
+            <span class="text-xs font-medium">AttachIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">📷</div>
+            <span class="text-xs font-medium">CameraIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">🖼️</div>
+            <span class="text-xs font-medium">ImageIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">🎤</div>
+            <span class="text-xs font-medium">MicIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">✓</div>
+            <span class="text-xs font-medium">CheckIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">✓✓</div>
+            <span class="text-xs font-medium">CheckAllIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">😊</div>
+            <span class="text-xs font-medium">EmojiIcon</span>
+          </div>
+          <div class="flex flex-col items-center p-4 bg-gray-50 rounded-lg">
+            <div class="icon-circle mb-2">⚙️</div>
+            <span class="text-xs font-medium">SettingsIcon</span>
+          </div>
+        </div>
+
+        <div class="code-block text-sm">
+<span class="comment">// Import icons from your components</span>
+<span class="keyword">import</span> { 
+  <span class="component">SendIcon</span>, 
+  <span class="component">BackIcon</span>, 
+  <span class="component">PhoneIcon</span>,
+  <span class="component">VideoIcon</span>,
+  <span class="component">SearchIcon</span>
+} <span class="keyword">from</span> <span class="string">'@/components'</span>;
+
+<span class="comment">// Use in your components</span>
+&lt;<span class="component">SendIcon</span> <span class="prop">size</span>={24} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;
+&lt;<span class="component">BackIcon</span> <span class="prop">size</span>={24} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;
+
+<span class="comment">// Access all Ionicons</span>
+<span class="keyword">import</span> { <span class="component">Ionicons</span> } <span class="keyword">from</span> <span class="string">'@/components'</span>;
+&lt;<span class="component">Ionicons</span> <span class="prop">name</span>=<span class="string">"heart"</span> <span class="prop">size</span>={24} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;
+        </div>
+      </div>
+    </section>
+
+    <!-- UI Components -->
+    <section id="ui" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">🎨 UI Components</h2>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <!-- Button -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="space-y-3">
+              <div class="bg-blue-500 px-6 py-3 rounded-lg">
+                <div class="text-white font-semibold text-center">Primary Button</div>
+              </div>
+              <div class="bg-transparent px-6 py-3 rounded-lg border-2 border-white">
+                <div class="text-white font-semibold text-center">Ghost Button</div>
+              </div>
+              <div class="bg-blue-500 px-4 py-2 rounded-lg">
+                <div class="text-white font-semibold text-sm text-center">Small Button</div>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Button</h3>
+            <p class="text-sm text-gray-600 mb-3">Primary action buttons with variants and sizes</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Button</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Button</span> 
+  <span class="prop">variant</span>=<span class="string">"primary"</span> 
+  <span class="prop">size</span>=<span class="string">"md"</span>
+  <span class="prop">onPress</span>={() => {}}
+&gt;
+  Click Me
+&lt;/<span class="component">Button</span>&gt;
+            </div>
+          </div>
+        </div>
+
+        <!-- IconButton with actual icons -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="flex gap-3">
+              <div class="icon-circle">←</div>
+              <div class="icon-circle">☰</div>
+              <div class="icon-circle">⚙️</div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">IconButton</h3>
+            <p class="text-sm text-gray-600 mb-3">Compact icon-only button using icon components</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">IconButton</span>, <span class="component">BackIcon</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">IconButton</span> 
+  <span class="prop">icon</span>={&lt;<span class="component">BackIcon</span> <span class="prop">size</span>={24} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;}
+  <span class="prop">onPress</span>={() => {}}
+/&gt;
+            </div>
+          </div>
+        </div>
+
+        <!-- Input with icon -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="w-full max-w-sm">
+              <div class="bg-gray-100 rounded-lg px-4 py-3 flex items-center">
+                <span class="mr-2">🔍</span>
+                <span class="text-gray-400">Search messages...</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Input</h3>
+            <p class="text-sm text-gray-600 mb-3">Text input with optional icon slots</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Input</span>, <span class="component">SearchIcon</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Input</span> 
+  <span class="prop">placeholder</span>=<span class="string">"Search..."</span>
+  <span class="prop">leftIcon</span>={&lt;<span class="component">SearchIcon</span> <span class="prop">size</span>={20} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;}
+/&gt;
+            </div>
+          </div>
+        </div>
+
+        <!-- Rest of UI components... -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="space-y-2 text-white text-center">
+              <div class="text-2xl font-bold">Title Text</div>
+              <div class="text-base">Body Text</div>
+              <div class="text-sm opacity-80">Muted Text</div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Text</h3>
+            <p class="text-sm text-gray-600 mb-3">Typography variants for titles, body, and muted text</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Text</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Text</span> <span class="prop">variant</span>=<span class="string">"title"</span>&gt;Title&lt;/<span class="component">Text</span>&gt;
+&lt;<span class="component">Text</span> <span class="prop">variant</span>=<span class="string">"body"</span>&gt;Body&lt;/<span class="component">Text</span>&gt;
+&lt;<span class="component">Text</span> <span class="prop">variant</span>=<span class="string">"muted"</span>&gt;Muted&lt;/<span class="component">Text</span>&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="flex gap-4 items-center">
+              <div class="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center">
+                <span class="text-white font-bold text-2xl">SJ</span>
+              </div>
+              <div class="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center">
+                <span class="text-white font-bold text-lg">MK</span>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                <span class="text-white font-semibold text-sm">TL</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Avatar</h3>
+            <p class="text-sm text-gray-600 mb-3">User avatars with fallback initials</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Avatar</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Avatar</span> 
+  <span class="prop">fallbackText</span>=<span class="string">"Sarah Johnson"</span>
+  <span class="prop">size</span>={40}
+/&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="w-full">
+              <div class="h-1 bg-white/30 rounded"></div>
+              <div class="h-1 bg-white/30 rounded mt-4"></div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Divider</h3>
+            <p class="text-sm text-gray-600 mb-3">Simple visual separator</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Divider</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Divider</span> /&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="flex gap-6 items-center">
+              <div class="relative">
+                <div class="w-12 h-12 bg-gray-300 rounded-full"></div>
+                <div class="absolute -top-1 -right-1 bg-red-500 rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">
+                  <span class="text-white text-xs font-bold">5</span>
+                </div>
+              </div>
+              <div class="relative">
+                <div class="w-12 h-12 bg-gray-300 rounded-full"></div>
+                <div class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-2 h-2"></div>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Badge</h3>
+            <p class="text-sm text-gray-600 mb-3">Notification badges with count or dot</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Badge</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Badge</span> <span class="prop">count</span>={5} <span class="prop">maxCount</span>={99} /&gt;
+&lt;<span class="component">Badge</span> <span class="prop">dot</span> /&gt;
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat Components -->
+    <section id="chat" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">💬 Chat Components</h2>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        
+        <!-- ChatHeader with icons -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="w-full max-w-sm bg-white rounded-lg shadow-md">
+              <div class="flex items-center p-3 border-b">
+                <span class="text-xl mr-2">←</span>
+                <div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                  <span class="text-white font-semibold text-sm">SJ</span>
+                </div>
+                <div class="flex-1">
+                  <p class="font-semibold text-sm">Sarah Johnson</p>
+                  <p class="text-xs text-gray-500">Active now</p>
+                </div>
+                <span class="text-lg">📞</span>
+                <span class="text-lg ml-2">🎥</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">ChatHeader</h3>
+            <p class="text-sm text-gray-600 mb-3">Header with back button and action icons</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { 
+  <span class="component">ChatHeader</span>, 
+  <span class="component">PhoneIcon</span>, 
+  <span class="component">VideoIcon</span> 
+} <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">ChatHeader</span> 
+  <span class="prop">title</span>=<span class="string">"Sarah Johnson"</span>
+  <span class="prop">subtitle</span>=<span class="string">"Active now"</span>
+  <span class="prop">onBackPress</span>={() => navigate.back()}
+  <span class="prop">rightActions</span>={
+    &lt;&gt;
+      &lt;<span class="component">PhoneIcon</span> <span class="prop">size</span>={22} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;
+      &lt;<span class="component">VideoIcon</span> <span class="prop">size</span>={22} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;
+    &lt;/&gt;
+  }
+/&gt;
+            </div>
+          </div>
+        </div>
+
+        <!-- MessageComposer with SendIcon -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="w-full max-w-sm bg-white rounded-lg p-3 border border-gray-200">
+              <div class="flex items-end gap-2">
+                <div class="flex-1 bg-gray-100 rounded-3xl px-4 py-2">
+                  <span class="text-sm text-gray-400">Type a message...</span>
+                </div>
+                <div class="bg-blue-500 rounded-full w-10 h-10 flex items-center justify-center">
+                  <span class="text-white text-lg">→</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">MessageComposer</h3>
+            <p class="text-sm text-gray-600 mb-3">Input area with SendIcon button</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">MessageComposer</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+<span class="comment">// Uses SendIcon internally</span>
+&lt;<span class="component">MessageComposer</span> 
+  <span class="prop">onSend</span>={(msg) => sendMessage(msg)}
+  <span class="prop">placeholder</span>=<span class="string">"Type a message..."</span>
+/&gt;
+            </div>
+          </div>
+        </div>
+
+        <!-- ReadReceipt with CheckIcon -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="flex gap-4 text-white text-sm">
+              <div class="flex items-center gap-1">
+                <span>✓</span>
+                <span>Sent</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span>✓✓</span>
+                <span>Delivered</span>
+              </div>
+              <div class="flex items-center gap-1 text-blue-300">
+                <span>✓✓</span>
+                <span>Read</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">ReadReceipt</h3>
+            <p class="text-sm text-gray-600 mb-3">Message status with CheckIcon/CheckAllIcon</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">ReadReceipt</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+<span class="comment">// Uses CheckIcon and CheckAllIcon internally</span>
+&lt;<span class="component">ReadReceipt</span> <span class="prop">status</span>=<span class="string">"sent"</span> /&gt;
+&lt;<span class="component">ReadReceipt</span> <span class="prop">status</span>=<span class="string">"delivered"</span> /&gt;
+&lt;<span class="component">ReadReceipt</span> <span class="prop">status</span>=<span class="string">"read"</span> /&gt;
+            </div>
+          </div>
+        </div>
+
+        <!-- Other chat components -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="space-y-3 w-full max-w-sm">
+              <div class="bg-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 max-w-[75%]">
+                <p class="text-sm text-gray-900">Hey, how are you?</p>
+                <p class="text-xs text-gray-500 mt-1">10:30 AM</p>
+              </div>
+              <div class="bg-blue-500 rounded-2xl rounded-tr-sm px-4 py-2 max-w-[75%] ml-auto">
+                <p class="text-sm text-white">I'm doing great!</p>
+                <p class="text-xs text-blue-100 mt-1">10:32 AM</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">ChatBubble</h3>
+            <p class="text-sm text-gray-600 mb-3">Message bubbles with incoming/outgoing styles</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">ChatBubble</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">ChatBubble</span> 
+  <span class="prop">message</span>=<span class="string">"Hello!"</span>
+  <span class="prop">isOutgoing</span>={true}
+  <span class="prop">timestamp</span>=<span class="string">"10:30 AM"</span>
+/&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="w-full max-w-sm space-y-3">
+              <div class="flex gap-2 items-start">
+                <div class="w-8 h-8 bg-white/30 rounded-full"></div>
+                <div class="flex-1">
+                  <div class="bg-white/30 rounded-2xl h-10"></div>
+                  <div class="h-3 w-16 bg-white/30 rounded mt-2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">MessageListItem</h3>
+            <p class="text-sm text-gray-600 mb-3">Message row with avatar, bubble, and time</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">MessageListItem</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">MessageListItem</span> 
+  <span class="prop">message</span>=<span class="string">"Hey!"</span>
+  <span class="prop">senderName</span>=<span class="string">"Sarah"</span>
+  <span class="prop">timestamp</span>=<span class="string">"10:30 AM"</span>
+/&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="bg-gray-200 rounded-2xl px-4 py-3 inline-flex gap-1">
+              <div class="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+              <div class="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+              <div class="w-2 h-2 bg-gray-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">TypingIndicator</h3>
+            <p class="text-sm text-gray-600 mb-3">Animated typing indicator</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">TypingIndicator</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">TypingIndicator</span> <span class="prop">userName</span>=<span class="string">"Sarah"</span> /&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="text-white text-sm">10:32 AM</div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Timestamp</h3>
+            <p class="text-sm text-gray-600 mb-3">Consistent time display</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Timestamp</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Timestamp</span> <span class="prop">value</span>=<span class="string">"10:32 AM"</span> /&gt;
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Layout Components (unchanged) -->
+    <section id="layout" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">📐 Layout Components</h2>
+
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="phone-mockup">
+              <div class="h-[500px] bg-white flex items-center justify-center">
+                <p class="text-gray-400">Safe Area Content</p>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Screen</h3>
+            <p class="text-sm text-gray-600 mb-3">Safe area wrapper with padding</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Screen</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Screen</span> <span class="prop">safe</span>={true}&gt;
+  {children}
+&lt;/<span class="component">Screen</span>&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="component-preview">
+            <div class="space-y-4">
+              <div class="flex gap-2">
+                <div class="w-12 h-12 bg-white/30 rounded"></div>
+                <div class="w-12 h-12 bg-white/30 rounded"></div>
+                <div class="w-12 h-12 bg-white/30 rounded"></div>
+              </div>
+              <div class="flex flex-col gap-2">
+                <div class="h-8 bg-white/30 rounded"></div>
+                <div class="h-8 bg-white/30 rounded"></div>
+              </div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Row & Column</h3>
+            <p class="text-sm text-gray-600 mb-3">Flexbox layout helpers</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Row</span>, <span class="component">Column</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Row</span> <span class="prop">gap</span>={4} <span class="prop">align</span>=<span class="string">"center"</span>&gt;
+  &lt;<span class="component">Text</span>&gt;Item 1&lt;/<span class="component">Text</span>&gt;
+&lt;/<span class="component">Row</span>&gt;
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden md:col-span-2">
+          <div class="component-preview">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-6 bg-white/30 rounded"></div>
+              <div class="w-10 h-6 bg-white/30 rounded"></div>
+              <div class="w-20 h-6 bg-white/30 rounded"></div>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">Spacer</h3>
+            <p class="text-sm text-gray-600 mb-3">Simple spacing between elements</p>
+            <div class="code-block text-xs">
+<span class="keyword">import</span> { <span class="component">Spacer</span> } <span class="keyword">from</span> <span class="string">"@/components"</span>;
+
+&lt;<span class="component">Spacer</span> <span class="prop">size</span>={12} /&gt;
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Full Chat Screen Example with icons -->
+    <section id="usage" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">🚀 Full Usage Example</h2>
+
+      <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="component-preview" style="min-height: 600px;">
+          <div class="phone-mockup">
+            <div class="flex items-center p-3 bg-white border-b">
+              <span class="text-lg mr-2">←</span>
+              <div class="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                <span class="text-white font-semibold text-sm">SJ</span>
+              </div>
+              <div class="flex-1">
+                <p class="font-semibold text-sm">Sarah Johnson</p>
+                <p class="text-xs text-green-600">Active now</p>
+              </div>
+              <span class="text-lg">📞</span>
+              <span class="text-lg ml-2">🎥</span>
+            </div>
+
+            <div class="flex-1 p-4 space-y-3 bg-gray-50" style="height: 400px; overflow-y: auto;">
+              <div class="flex items-start gap-2">
+                <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span class="text-white font-semibold text-xs">SJ</span>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500 mb-1">Sarah Johnson</p>
+                  <div class="bg-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 max-w-[250px]">
+                    <p class="text-sm text-gray-900">Hey! How are you?</p>
+                    <p class="text-xs text-gray-500 mt-1">10:30 AM</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <div class="bg-blue-500 rounded-2xl rounded-tr-sm px-4 py-2 max-w-[250px]">
+                  <p class="text-sm text-white">I'm great! Working on a new project.</p>
+                  <div class="flex items-center gap-1 mt-1">
+                    <p class="text-xs text-blue-100">10:32 AM</p>
+                    <span class="text-blue-100 text-xs">✓✓</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-2">
+                <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span class="text-white font-semibold text-xs">SJ</span>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500 mb-1">Sarah Johnson</p>
+                  <div class="bg-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 max-w-[250px]">
+                    <p class="text-sm text-gray-900">That sounds exciting!</p>
+                    <p class="text-xs text-gray-500 mt-1">10:33 AM</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-2">
+                <div class="w-8 h-8 invisible"></div>
+                <div class="bg-gray-200 rounded-2xl px-4 py-3 inline-flex gap-1">
+                  <div class="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                  <div class="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                  <div class="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-end gap-2 p-3 bg-white border-t">
+              <div class="flex-1 bg-gray-100 rounded-3xl px-4 py-2">
+                <span class="text-sm text-gray-400">Type a message...</span>
+              </div>
+              <div class="bg-blue-500 rounded-full w-10 h-10 flex items-center justify-center">
+                <span class="text-white text-lg">→</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <h3 class="font-bold text-lg mb-4">ChatScreen.tsx - Complete Implementation</h3>
+          <div class="code-block">
+<span class="keyword">import</span> React <span class="keyword">from</span> <span class="string">'react'</span>;
+<span class="keyword">import</span> {
+  <span class="component">Screen</span>,
+  <span class="component">ChatHeader</span>,
+  <span class="component">MessageListItem</span>,
+  <span class="component">MessageComposer</span>,
+  <span class="component">TypingIndicator</span>,
+  <span class="component">PhoneIcon</span>,
+  <span class="component">VideoIcon</span>,
+} <span class="keyword">from</span> <span class="string">'@/components'</span>;
+
+<span class="keyword">export default function</span> ChatScreen() {
+  <span class="keyword">return</span> (
+    &lt;<span class="component">Screen</span>&gt;
+      &lt;<span class="component">ChatHeader</span>
+        <span class="prop">title</span>=<span class="string">"Sarah Johnson"</span>
+        <span class="prop">subtitle</span>=<span class="string">"Active now"</span>
+        <span class="prop">onBackPress</span>={() => router.back()}
+        <span class="prop">rightActions</span>={
+          &lt;&gt;
+            &lt;<span class="component">PhoneIcon</span> <span class="prop">size</span>={22} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;
+            &lt;<span class="component">VideoIcon</span> <span class="prop">size</span>={22} <span class="prop">color</span>=<span class="string">"#3b82f6"</span> /&gt;
+          &lt;/&gt;
+        }
+      /&gt;
+
+      &lt;ScrollView className=<span class="string">"flex-1 px-4"</span>&gt;
+        &lt;<span class="component">MessageListItem</span>
+          <span class="prop">message</span>=<span class="string">"Hey! How are you?"</span>
+          <span class="prop">senderName</span>=<span class="string">"Sarah Johnson"</span>
+          <span class="prop">timestamp</span>=<span class="string">"10:30 AM"</span>
+        /&gt;
+
+        &lt;<span class="component">TypingIndicator</span> <span class="prop">userName</span>=<span class="string">"Sarah"</span> /&gt;
+      &lt;/ScrollView&gt;
+
+      &lt;<span class="component">MessageComposer</span> <span class="prop">onSend</span>={handleSend} /&gt;
+    &lt;/<span class="component">Screen</span>&gt;
+  );
+}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Project Structure with icons -->
+    <section id="structure" class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">📁 Project Structure</h2>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="code-block">
+components/
+├── icons.tsx              <span class="text-gray-400"># All icon exports (SendIcon, BackIcon, etc.)</span>
+├── ui/
+│   ├── Avatar.tsx
+│   ├── Badge.tsx
+│   ├── Button.tsx
+│   ├── Divider.tsx
+│   ├── IconButton.tsx     <span class="text-gray-400"># Uses icon components as props</span>
+│   ├── Input.tsx          <span class="text-gray-400"># Accepts leftIcon/rightIcon slots</span>
+│   ├── Text.tsx
+│   └── index.ts
+├── chat/
+│   ├── ChatBubble.tsx
+│   ├── ChatHeader.tsx     <span class="text-gray-400"># Uses BackIcon internally</span>
+│   ├── MessageComposer.tsx <span class="text-gray-400"># Uses SendIcon internally</span>
+│   ├── MessageListItem.tsx
+│   ├── ReadReceipt.tsx    <span class="text-gray-400"># Uses CheckIcon/CheckAllIcon</span>
+│   ├── Timestamp.tsx
+│   ├── TypingIndicator.tsx
+│   └── index.ts
+├── layout/
+│   ├── Column.tsx
+│   ├── Row.tsx
+│   ├── Screen.tsx
+│   ├── Spacer.tsx
+│   └── index.ts
+└── index.ts               <span class="text-gray-400"># Exports all components + icons</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">✨ Features</h2>
+
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <div class="text-3xl mb-3">⚡</div>
+          <h3 class="font-bold mb-2">Fast & Lightweight</h3>
+          <p class="text-sm text-gray-600">No heavy dependencies. Just clean, performant components.</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <div class="text-3xl mb-3">🎯</div>
+          <h3 class="font-bold mb-2">TypeScript First</h3>
+          <p class="text-sm text-gray-600">Fully typed props and exports for excellent IDE support.</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <div class="text-3xl mb-3">🎨</div>
+          <h3 class="font-bold mb-2">NativeWind Styling</h3>
+          <p class="text-sm text-gray-600">Use Tailwind classes directly. No StyleSheet needed.</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <div class="text-3xl mb-3">🎭</div>
+          <h3 class="font-bold mb-2">Icon Library</h3>
+          <p class="text-sm text-gray-600">15+ pre-configured icons from @expo/vector-icons.</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <div class="text-3xl mb-3">♿</div>
+          <h3 class="font-bold mb-2">Accessible</h3>
+          <p class="text-sm text-gray-600">Built with accessibility roles and labels.</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <div class="text-3xl mb-3">🧩</div>
+          <h3 class="font-bold mb-2">Composable</h3>
+          <p class="text-sm text-gray-600">Mix and match components to build complex UIs.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-gray-900 text-white py-8 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p class="text-sm text-gray-400">Built with TypeScript, React Native, Expo, NativeWind, and @expo/vector-icons</p>
+      <p class="text-xs text-gray-500 mt-2">Simple, practical component library for messenger apps</p>
+    </div>
+  </footer>
+
+</body>
+</html>
