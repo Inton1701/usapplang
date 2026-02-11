@@ -42,15 +42,18 @@ export default function PersonalInfoScreen() {
   if (loading || !profile) return null;
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-    });
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'], // ✅ SAFE & WORKS IN ALL SDK VERSIONS
+    quality: 0.7,
+    allowsEditing: true,
+    aspect: [1, 1], // nice square crop like Facebook
+  });
 
-    if (!result.canceled) {
-      await saveLocalProfileImage(result.assets[0].uri);
-    }
-  };
+  if (!result.canceled) {
+    await saveLocalProfileImage(result.assets[0].uri);
+  }
+};
+
 
   const handleSave = async () => {
     setSaving(true);
