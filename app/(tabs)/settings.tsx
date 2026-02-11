@@ -2,7 +2,7 @@
 // Settings screen
 // ──────────────────────────────────────────────
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Screen, Text, Avatar, Row, Spacer, Divider, Button } from '@/components';
@@ -10,10 +10,20 @@ import { SettingsIcon } from '@/components/icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useDev } from '@/providers/DevProvider';
+import { useNotifications } from '@/hooks/usePushNotification';
+import * as Clipboard from 'expo-clipboard';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isDevMode } = useDev();
+  const { expoPushToken } = useNotifications(user?.uid || null);
+
+  // Log token for easy viewing in terminal
+  useEffect(() => {
+    if (expoPushToken) {
+      console.log('📱 Expo Push Token:', expoPushToken);
+    }
+  }, [expoPushToken]);
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure?', [
@@ -27,6 +37,18 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  };
+
+  const copyPushToken = async () => {
+    if (expoPushToken) {
+      await Clipboard.setStringAsync(expoPushToken);
+      Alert.alert(
+        'Copied!', 
+        'Push token copied to clipboard. You can test it at:\nhttps://expo.dev/notifications'
+      );
+    } else {
+      Alert.alert('Error', 'Push token not available yet');
+    }
   };
 
   const SettingsRow = ({
@@ -83,6 +105,37 @@ export default function SettingsScreen() {
         <SettingsRow icon="notifications-outline" label="Notifications" onPress={() => {}} />
         <SettingsRow icon="moon-outline" label="Appearance" onPress={() => {}} />
       </View>
+
+      {/* Push Token (dev only) */}
+      {isDevMode && expoPushToken && (
+        <>
+          <Spacer size={16} />
+          <View className="bg-white">
+            <View className="px-4 py-3">
+              <Row align="center" className="mb-2">
+                <Ionicons name="notifications" size={20} color="#3b82f6" />
+                <Text className="font-semibold ml-2 text-blue-600">
+                  Push Notification Token
+                </Text>
+              </Row>
+              <Text variant="muted" className="text-xs mb-3" numberOfLines={2}>
+                {expoPushToken}
+              </Text>
+              <Pressable 
+                onPress={copyPushToken}
+                className="bg-blue-500 px-4 py-2.5 rounded-lg active:bg-blue-600"
+              >
+                <Row align="center" justify="center">
+                  <Ionicons name="copy-outline" size={16} color="white" />
+                  <Text className="text-white font-semibold ml-2">
+                    Copy Token
+                  </Text>
+                </Row>
+              </Pressable>
+            </View>
+          </View>
+        </>
+      )}
 
       {/* Admin entry (dev only) */}
       {isDevMode && (

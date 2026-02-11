@@ -13,6 +13,7 @@ import {
 import type { Message, Conversation } from '@/types';
 import { useAuth } from './useAuth';
 
+
 // ─── Conversations list ──────────────────────
 
 export function useConversations() {

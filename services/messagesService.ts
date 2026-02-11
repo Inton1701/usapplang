@@ -31,6 +31,7 @@ import {
 import { db } from '@/lib/firebase';
 import { COLLECTIONS, PAGE_SIZE } from '@/constants';
 import type { Conversation, Message } from '@/types';
+import { sendPushNotification } from '../services/pushNotificationSender';
 
 // ─── Helpers ─────────────────────────────────
 
@@ -149,6 +150,34 @@ export async function sendMessage(
       updatedAt: now,
       [`unreadCount.${otherUid}`]: increment(1),
     });
+
+  // 🔔 Send push notification to the recipient
+    if (otherUid) {
+      try {
+        // Get recipient's push token
+        const recipientDoc = await getDoc(doc(db, COLLECTIONS.USERS, otherUid));
+        const pushToken = recipientDoc.data()?.pushToken;
+
+        // Get sender's name
+        const senderDoc = await getDoc(doc(db, COLLECTIONS.USERS, senderId));
+        const senderName = senderDoc.data()?.displayName || 
+                          senderDoc.data()?.name || 
+                          'Someone';
+
+        if (pushToken) {
+          await sendPushNotification(pushToken, {
+            messageId: ref.id,
+            chatId: conversationId,
+            senderId,
+            senderName,
+            text,
+          });
+        }
+      } catch (error) {
+        // Log but don't fail the message send if notification fails
+        console.error('Failed to send push notification:', error);
+      }
+    }
   }
 
   return { id: ref.id, ...msg };
