@@ -18,3 +18,16 @@ export type { InputProps } from './Input';
 
 export { Text } from './Text';
 export type { TextProps } from './Text';
+
+export { DatePicker } from './DatePicker';
+export type { DatePickerProps } from './DatePicker';
+
+export { BirthdayPicker } from './BirthdayPicker';
+export type { BirthdayPickerProps } from './BirthdayPicker';
+
+export { Select } from './Select';
+export type { SelectProps } from './Select';
+
+export { SegmentedTabs } from './SegmentedTabs';
+export type { SegmentedTabsProps } from './SegmentedTabs';
+
