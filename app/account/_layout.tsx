@@ -1,28 +1,40 @@
 // app/account/_layout.tsx
 
 import React from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
-import { View } from 'react-native';
-import { SegmentedTabs, Spacer } from '@/components';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AccountTabsLayout() {
-  const router = useRouter();
-  const segments = useSegments();
-
-  const activeIndex = segments.includes('contact') ? 1 : 0;
-
   return (
-    <View className="flex-1 bg-white">
-      <Spacer size={16} />
-      <SegmentedTabs
-        tabs={['Personal', 'Contact']}
-        activeIndex={activeIndex}
-        onChange={(index: number) => {
-          if (index === 0) router.push('/account/personal');
-          else router.push('/account/contact');
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#3b82f6',
+        tabBarInactiveTintColor: '#9ca3af',
+        tabBarStyle: {
+          borderTopColor: '#e5e7eb',
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="personal"
+        options={{
+          title: 'Personal',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
         }}
       />
-      <Slot />
-    </View>
+
+      <Tabs.Screen
+        name="contact"
+        options={{
+          title: 'Contact',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="call-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }

@@ -60,16 +60,21 @@ export function useProfile() {
   const changeEmail = async (newEmail: string) => {
     if (!uid || !auth.currentUser) return;
 
-    // Update auth email (may require recent login)
-    await updateEmail(auth.currentUser, newEmail);
+    try {
+      // Update auth email (may require recent login)
+      await updateEmail(auth.currentUser, newEmail);
 
-    // Update Firestore users document
-    await updateDoc(doc(db, 'users', uid), {
-      email: newEmail,
-      updatedAt: new Date(),
-    });
+      // Update Firestore users document
+      await updateDoc(doc(db, 'users', uid), {
+        email: newEmail,
+        updatedAt: new Date(),
+      });
 
-    setProfile(prev => ({ ...prev!, email: newEmail }));
+      setProfile(prev => ({ ...prev!, email: newEmail }));
+    } catch (err: any) {
+      // Bubble up a clearer error for callers to handle (e.g. requires recent login)
+      throw err;
+    }
   };
 
   const removeProfileImage = async () => {

@@ -28,16 +28,25 @@ export default function ContactInfoScreen() {
 
   const handleSave = async () => {
     setSaving(true);
+    try {
+      if (email !== profile.email) {
+        await changeEmail(email);
+      }
 
-    if (email !== profile.email) {
-      await changeEmail(email);
+      await updateProfile({
+        contactNumber,
+      });
+
+      // success feedback
+      const { showToast } = await import('@/providers/ToastProvider');
+      showToast('success', 'Contact info saved');
+    } catch (err: any) {
+      const { showToast } = await import('@/providers/ToastProvider');
+      const message = err?.message || 'Failed to save contact info';
+      showToast('error', message);
+    } finally {
+      setSaving(false);
     }
-
-    await updateProfile({
-      contactNumber,
-    });
-
-    setSaving(false);
   };
 
   return (
