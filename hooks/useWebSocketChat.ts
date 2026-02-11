@@ -27,6 +27,7 @@ export function useWebSocketChat(conversationId?: string) {
     firebaseUser.getIdToken().then((token) => {
       wsClient.connect(WS_URL, token);
       connected.current = true;
+      console.log('[WS] Connected and authenticated');
     });
 
     return () => {
@@ -34,6 +35,19 @@ export function useWebSocketChat(conversationId?: string) {
       connected.current = false;
     };
   }, [firebaseUser]);
+
+  // ── Subscribe to specific conversation on mount ──
+  useEffect(() => {
+    if (!conversationId || !connected.current) return;
+
+    console.log(`[WS] Subscribing to conversation: ${conversationId}`);
+    wsClient.subscribe(conversationId);
+
+    return () => {
+      console.log(`[WS] Unsubscribing from conversation: ${conversationId}`);
+      wsClient.unsubscribe(conversationId);
+    };
+  }, [conversationId, firebaseUser]);
 
   // ── Handle AppState (foreground / background) ──
   useEffect(() => {
@@ -52,6 +66,8 @@ export function useWebSocketChat(conversationId?: string) {
   useEffect(() => {
     const unsub = wsClient.on('message:new', (event: WSEvent) => {
       const { message, conversationId: cid } = event.payload as WSNewMessagePayload;
+
+      console.log(`[WS] Received message:new for conversation ${cid}`, message);
 
       // Update message list cache
       qc.setQueryData(QK.MESSAGES(cid), (old: any) => {

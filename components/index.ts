@@ -9,3 +9,7 @@ export * from './layout';
 
 // Icons
 export * from './icons';
+
+// Profile Components
+export { ProfileModal } from './ProfileModal';
+export type { ProfileModalProps } from './ProfileModal';

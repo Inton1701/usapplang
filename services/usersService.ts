@@ -45,31 +45,36 @@ export async function getUsers(
   searchQuery?: string,
   pageParam?: DocumentSnapshot,
 ): Promise<{ users: User[]; lastDoc: DocumentSnapshot | null }> {
+  // Strategy: Client-side filtering for case-insensitive search
+  // Firestore doesn't support case-insensitive queries or full-text search
+  // For small-medium user bases, fetch all users and filter client-side
+  // For production at scale, consider: Algolia, Typesense, or store lowercase fields
+  
   let q = query(
     collection(db, COLLECTIONS.USERS),
     orderBy('name'),
-    limit(PAGE_SIZE),
+    limit(100), // Fetch more for client-side filtering
   );
 
   if (pageParam) {
     q = query(q, startAfter(pageParam));
   }
 
-  // Firestore doesn't support full‑text search.
-  // For simple prefix matching we use range queries on `name`.
-  if (searchQuery) {
-    const end = searchQuery + '\uf8ff';
-    q = query(
-      collection(db, COLLECTIONS.USERS),
-      orderBy('name'),
-      where('name', '>=', searchQuery),
-      where('name', '<=', end),
-      limit(PAGE_SIZE),
-    );
-  }
-
   const snap = await getDocs(q);
-  const users = snap.docs.map((d) => ({ uid: d.id, ...d.data() } as User));
+  let users = snap.docs.map((d) => ({ uid: d.id, ...d.data() } as User));
+  
+  // Client-side case-insensitive filtering
+  if (searchQuery && searchQuery.trim()) {
+    const query = searchQuery.toLowerCase().trim();
+    users = users.filter(user => {
+      const nameMatch = user.name?.toLowerCase().includes(query);
+      const emailMatch = user.email?.toLowerCase().includes(query);
+      return nameMatch || emailMatch;
+    });
+  }
+  
+  // Limit results after filtering
+  users = users.slice(0, PAGE_SIZE);
   const lastDoc = snap.docs[snap.docs.length - 1] ?? null;
   return { users, lastDoc };
 }

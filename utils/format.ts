@@ -29,3 +29,21 @@ export function formatRelative(ts: number): string {
 export function truncate(text: string, max = 40): string {
   return text.length > max ? text.slice(0, max) + '…' : text;
 }
+
+/** Format last active timestamp to compact format (1m, 2h, 3d, 1w) */
+export function formatLastSeen(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(diff / 86_400_000);
+  const weeks = Math.floor(diff / 604_800_000);
+  
+  if (seconds < 60) return '1m'; // Less than a minute
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  return `${weeks}w`;
+}
