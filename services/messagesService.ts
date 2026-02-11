@@ -59,10 +59,18 @@ export async function getOrCreateConversation(
 
   if (snap.exists()) return { id: snap.id, ...snap.data() } as Conversation;
 
+  // Check if they are contacts
+  const contactsRef = collection(db, COLLECTIONS.USERS, myUid, COLLECTIONS.CONTACTS);
+  const contactQuery = query(contactsRef, where('uid', '==', otherUid));
+  const contactSnap = await getDocs(contactQuery);
+  const areContacts = !contactSnap.empty;
+
   const now = Date.now();
   const convo: Conversation = {
     id,
     participants: [myUid, otherUid],
+    status: areContacts ? 'active' : 'pending', // pending if not contacts
+    initiatedBy: myUid,
     unreadCount: { [myUid]: 0, [otherUid]: 0 },
     createdAt: now,
     updatedAt: now,
@@ -173,4 +181,29 @@ export async function updateMessageStatus(
 ): Promise<void> {
   const ref = doc(db, COLLECTIONS.CONVERSATIONS, conversationId, COLLECTIONS.MESSAGES, messageId);
   await updateDoc(ref, { status });
+}
+
+// ─── Message request actions ─────────────────
+
+export async function acceptMessageRequest(
+  conversationId: string,
+  myUid: string,
+  otherUid: string,
+): Promise<void> {
+  const convoRef = doc(db, COLLECTIONS.CONVERSATIONS, conversationId);
+  await updateDoc(convoRef, { status: 'active', updatedAt: Date.now() });
+
+  // Add each other as contacts
+  const myContactRef = doc(db, COLLECTIONS.USERS, myUid, COLLECTIONS.CONTACTS, otherUid);
+  const otherContactRef = doc(db, COLLECTIONS.USERS, otherUid, COLLECTIONS.CONTACTS, myUid);
+  const now = Date.now();
+  await Promise.all([
+    setDoc(myContactRef, { uid: otherUid, addedAt: now }),
+    setDoc(otherContactRef, { uid: myUid, addedAt: now }),
+  ]);
+}
+
+export async function declineMessageRequest(conversationId: string): Promise<void> {
+  const convoRef = doc(db, COLLECTIONS.CONVERSATIONS, conversationId);
+  await updateDoc(convoRef, { status: 'declined', updatedAt: Date.now() });
 }

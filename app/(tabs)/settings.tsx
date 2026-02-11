@@ -9,11 +9,15 @@ import { Screen, Text, Avatar, Row, Spacer, Divider, Button } from '@/components
 import { SettingsIcon } from '@/components/icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresence } from '@/hooks/usePresence';
 import { useDev } from '@/providers/DevProvider';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isDevMode } = useDev();
+  
+  // Track user presence (online/offline)
+  usePresence();
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure?', [

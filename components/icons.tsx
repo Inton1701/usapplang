@@ -87,6 +87,14 @@ export const NotificationIcon = ({ size = 24, color = '#000', ...props }: IconPr
   <Ionicons name="notifications-outline" size={size} color={color} {...props} />
 );
 
+export const EyeIcon = ({ size = 24, color = '#6b7280', ...props }: IconProps) => (
+  <Ionicons name="eye-outline" size={size} color={color} {...props} />
+);
+
+export const EyeOffIcon = ({ size = 24, color = '#6b7280', ...props }: IconProps) => (
+  <Ionicons name="eye-off-outline" size={size} color={color} {...props} />
+);
+
 // Export icon libraries for custom usage
 export {
   Ionicons,

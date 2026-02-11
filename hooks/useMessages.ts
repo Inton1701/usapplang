@@ -9,6 +9,8 @@ import {
   sendMessage,
   markConversationRead,
   getConversations,
+  acceptMessageRequest,
+  declineMessageRequest,
 } from '@/services/messagesService';
 import type { Message, Conversation } from '@/types';
 import { useAuth } from './useAuth';
@@ -106,6 +108,38 @@ export function useMarkRead(conversationId: string) {
   return useMutation({
     mutationFn: () => markConversationRead(conversationId, user!.uid),
     onSettled: () => {
+      if (user) qc.invalidateQueries({ queryKey: QK.CONVERSATIONS(user.uid) });
+    },
+  });
+}
+
+// ─── Accept message request ──────────────────
+
+export function useAcceptRequest() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ conversationId, otherUid }: { conversationId: string; otherUid: string }) =>
+      acceptMessageRequest(conversationId, user!.uid, otherUid),
+    onSuccess: () => {
+      if (user) {
+        qc.invalidateQueries({ queryKey: QK.CONVERSATIONS(user.uid) });
+        qc.invalidateQueries({ queryKey: QK.CONTACTS(user.uid) });
+      }
+    },
+  });
+}
+
+// ─── Decline message request ─────────────────
+
+export function useDeclineRequest() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (conversationId: string) => declineMessageRequest(conversationId),
+    onSuccess: () => {
       if (user) qc.invalidateQueries({ queryKey: QK.CONVERSATIONS(user.uid) });
     },
   });

@@ -92,6 +92,18 @@ class WSClient {
     this.ws.send(JSON.stringify({ type, payload, timestamp: Date.now() }));
   }
 
+  /** Subscribe to a conversation channel */
+  subscribe(conversationId: string) {
+    console.log(`[WS] subscribing to conversation: ${conversationId}`);
+    this.send('conversation:subscribe', { conversationId });
+  }
+
+  /** Unsubscribe from a conversation channel */
+  unsubscribe(conversationId: string) {
+    console.log(`[WS] unsubscribing from conversation: ${conversationId}`);
+    this.send('conversation:unsubscribe', { conversationId });
+  }
+
   /** Cleanly disconnect */
   disconnect() {
     this.intentionalClose = true;

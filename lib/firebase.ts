@@ -17,7 +17,8 @@ const firebaseConfig = {
 // Prevent double‑init during fast‑refresh
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Auth instance (persistence is automatic in modern Firebase)
+// Auth instance - Firebase automatically uses AsyncStorage for persistence in React Native
+// when @react-native-async-storage/async-storage is installed
 export const auth = getAuth(app);
 
 export const db = getFirestore(app);

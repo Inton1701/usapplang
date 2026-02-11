@@ -83,6 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name,
         email,
         status: 'online',
+        isOnline: true,
+        lastActiveAt: Date.now(),
       });
       console.log('[useAuth] User profile created successfully');
     } catch (error) {
@@ -107,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: `User ${cred.user.uid.slice(0, 6)}`,
         email: '',
         status: 'online',
+        isOnline: true,
+        lastActiveAt: Date.now(),
       });
       console.log('[useAuth] Anonymous user profile created successfully');
     } catch (error) {

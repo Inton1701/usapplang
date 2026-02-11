@@ -9,6 +9,7 @@ export interface ChatHeaderProps {
   title: string;
   subtitle?: string;
   avatar?: string;
+  isOnline?: boolean;
   onBackPress?: () => void;
   rightActions?: React.ReactNode;
   className?: string;
@@ -18,6 +19,7 @@ export function ChatHeader({
   title,
   subtitle,
   avatar,
+  isOnline,
   onBackPress,
   rightActions,
   className = '',
@@ -35,7 +37,16 @@ export function ChatHeader({
         />
       )}
       
-      {avatar && <Avatar source={avatar} fallbackText={title} size={36} className="mr-3" />}
+      {avatar && (
+        <Avatar 
+          source={avatar} 
+          fallbackText={title} 
+          size={40} 
+          isOnline={isOnline}
+          showPresence={isOnline !== undefined}
+          className="mr-3" 
+        />
+      )}
       
       <Pressable className="flex-1" onPress={() => {}}>
         <Text variant="title" className="text-base">

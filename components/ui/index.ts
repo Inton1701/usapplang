@@ -16,5 +16,14 @@ export type { IconButtonProps } from './IconButton';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
+export { PasswordInput } from './PasswordInput';
+export type { PasswordInputProps } from './PasswordInput';
+
+export { ProfileCarousel } from './ProfileCarousel';
+export type { ProfileCarouselProps } from './ProfileCarousel';
+
+export { StoriesCarousel } from './StoriesCarousel';
+export type { StoriesCarouselProps } from './StoriesCarousel';
+
 export { Text } from './Text';
 export type { TextProps } from './Text';

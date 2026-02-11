@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { View, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { Screen, Button, Input, Text, Spacer } from '@/components';
+import { Screen, Button, Input, PasswordInput, Text, Spacer } from '@/components';
 import { useAuth } from '@/hooks/useAuth';
 import { showToast } from '@/providers/ToastProvider';
 
@@ -13,6 +13,7 @@ export default function LoginScreen() {
   const { login, register, loginAnonymous, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [isRegister, setIsRegister] = useState(false);
 
@@ -23,6 +24,16 @@ export default function LoginScreen() {
         if (!name.trim()) {
           console.log('[LoginScreen] Registration failed - name is empty');
           showToast('error', 'Name required');
+          return;
+        }
+        if (password !== confirmPassword) {
+          console.log('[LoginScreen] Registration failed - passwords do not match');
+          showToast('error', 'Passwords do not match');
+          return;
+        }
+        if (password.length < 6) {
+          console.log('[LoginScreen] Registration failed - password too short');
+          showToast('error', 'Password must be at least 6 characters');
           return;
         }
         console.log('[LoginScreen] Calling register...');
@@ -89,13 +100,25 @@ export default function LoginScreen() {
         />
         <Spacer size={12} />
 
-        <Input
+        <PasswordInput
           placeholder="Password"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
         />
-        <Spacer size={20} />
+        <Spacer size={12} />
+
+        {isRegister && (
+          <>
+            <PasswordInput
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+            <Spacer size={12} />
+          </>
+        )}
+
+        <Spacer size={8} />
 
         <Button onPress={handleSubmit} loading={loading}>
           {isRegister ? 'Create Account' : 'Sign In'}
