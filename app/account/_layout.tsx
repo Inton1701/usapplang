@@ -5,6 +5,10 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AccountTabsLayout() {
+  React.useEffect(() => {
+    console.log('[AccountTabsLayout] Mounted');
+    return () => console.log('[AccountTabsLayout] Unmounted');
+  }, []);
   return (
     <Tabs
       screenOptions={{
