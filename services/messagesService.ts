@@ -31,7 +31,10 @@ import {
 import { db } from '@/lib/firebase';
 import { COLLECTIONS, PAGE_SIZE } from '@/constants';
 import type { Conversation, Message } from '@/types';
-import { sendPushNotification } from '../services/pushNotificationSender';
+import { sendPushNotification } from '@/services/pushNotificationSender';
+import { getRecipientToken } from './firebaseService';
+import { createNotification } from './notificationsService';
+
 
 // ─── Helpers ─────────────────────────────────
 
@@ -123,11 +126,15 @@ export function onMessagesSnapshot(
 
 // ─── Send message ────────────────────────────
 
+// ─── Send message ────────────────────────────
+
 export async function sendMessage(
   conversationId: string,
   senderId: string,
   text: string,
 ): Promise<Message> {
+  console.log('📨 [sendMessage START] conversationId:', conversationId, 'senderId:', senderId);
+  
   const now = Date.now();
   const msg: Omit<Message, 'id'> = {
     conversationId,
@@ -137,50 +144,149 @@ export async function sendMessage(
     createdAt: now,
   };
 
+  // 1. Save message
+  console.log('📝 Saving message to Firestore...');
   const ref = await addDoc(messagesRef(conversationId), msg);
+  console.log('✅ Message saved, ID:', ref.id);
 
-  // Update conversation's lastMessage + bump unreadCount for other participant
-  const convoRef = doc(db, COLLECTIONS.CONVERSATIONS, conversationId);
-  const convoSnap = await getDoc(convoRef);
+  // 2. Update conversation & get other user
+  console.log('📋 Fetching conversation document...');
+  let convoRef = doc(db, 'conversations', conversationId);
+  let convoSnap = await getDoc(convoRef);
+  console.log('📋 Conversation exists?', convoSnap.exists());
+  
+  // If conversation doesn't exist, try to create it
+  if (!convoSnap.exists()) {
+    console.warn('⚠️ Conversation not found, attempting to extract participants from ID...');
+    // Conversation ID format: uid1_uid2 (sorted)
+    const participants = conversationId.split('_');
+    if (participants.length === 2) {
+      console.log('Creating conversation with participants:', participants);
+      const newConvo: Conversation = {
+        id: conversationId,
+        participants,
+        lastMessage: { text, senderId, timestamp: now },
+        unreadCount: { [participants[0]]: 0, [participants[1]]: 0 },
+        createdAt: now,
+        updatedAt: now,
+      };
+      await setDoc(convoRef, newConvo);
+      console.log('✅ Conversation created');
+      convoSnap = await getDoc(convoRef);
+    }
+  }
+  
   if (convoSnap.exists()) {
-    const convo = convoSnap.data() as Conversation;
-    const otherUid = convo.participants.find((p) => p !== senderId) ?? '';
+    const convo = convoSnap.data();
+    console.log('👥 Participants:', convo.participants);
+    
+    const otherUid = convo.participants?.find((p: string) => p !== senderId) ?? '';
+    console.log('🔍 Other user ID:', otherUid);
+    
     await updateDoc(convoRef, {
       lastMessage: { text, senderId, timestamp: now },
       updatedAt: now,
       [`unreadCount.${otherUid}`]: increment(1),
     });
+    console.log('✅ Conversation updated');
 
-  // 🔔 Send push notification to the recipient
+    // 3. Get sender info for notifications
     if (otherUid) {
+      console.log('========== NOTIFICATION CREATION START ==========');
+      const senderDoc = await getDoc(doc(db, 'users', senderId));
+      const senderName = senderDoc.data()?.displayName || 
+                         senderDoc.data()?.name || 
+                         'Someone';
+      console.log('👤 Sender name:', senderName);
+
+      // 4. Create notification document in Firestore
       try {
-        // Get recipient's push token
-        const recipientDoc = await getDoc(doc(db, COLLECTIONS.USERS, otherUid));
-        const pushToken = recipientDoc.data()?.pushToken;
-
-        // Get sender's name
-        const senderDoc = await getDoc(doc(db, COLLECTIONS.USERS, senderId));
-        const senderName = senderDoc.data()?.displayName || 
-                          senderDoc.data()?.name || 
-                          'Someone';
-
-        if (pushToken) {
-          await sendPushNotification(pushToken, {
-            messageId: ref.id,
-            chatId: conversationId,
-            senderId,
-            senderName,
-            text,
-          });
-        }
-      } catch (error) {
-        // Log but don't fail the message send if notification fails
-        console.error('Failed to send push notification:', error);
+        console.log('📝 Creating notification...');
+        console.log('   recipientId:', otherUid);
+        console.log('   senderId:', senderId);
+        console.log('   senderName:', senderName);
+        console.log('   messageId:', ref.id);
+        console.log('   conversationId:', conversationId);
+        console.log('   text:', text.substring(0, 50));
+        
+        const notif = await createNotification(
+          otherUid,
+          senderId,
+          senderName,
+          ref.id,
+          conversationId,
+          text
+        );
+        console.log('✅ Notification document created:', notif.id);
+        console.log('✅ Full notification:', notif);
+      } catch (err) {
+        console.error('❌ Failed to create notification doc:', err);
+        console.error('   Error type:', err instanceof Error ? err.constructor.name : typeof err);
+        console.error('   Error message:', err instanceof Error ? err.message : JSON.stringify(err));
+        console.error('   Full error:', err);
       }
+      console.log('========== NOTIFICATION CREATION END ==========');
+
+      // 5. Send push notification (fire and forget)
+      console.log('========== PUSH NOTIFICATION START ==========');
+      console.log('🚀 Sending push notification to:', otherUid);
+      sendPushNotificationToRecipient(
+        otherUid,
+        ref.id,
+        conversationId,
+        senderId,
+        senderName,
+        text
+      ).catch(err => {
+        console.error('❌ Push notification failed:', err);
+      });
+      console.log('========== PUSH NOTIFICATION END ==========');
+    } else {
+      console.warn('⚠️ No other user found in conversation');
     }
+  } else {
+    console.error('❌ Conversation document could not be created or found');
   }
 
+  console.log('📨 [sendMessage END]');
   return { id: ref.id, ...msg };
+}
+
+// Helper function to send push notification
+async function sendPushNotificationToRecipient(
+  recipientId: string,
+  messageId: string,
+  conversationId: string,
+  senderId: string,
+  senderName: string,
+  text: string,
+): Promise<void> {
+  try {
+    console.log('📱 Looking up push token for:', recipientId);
+    const recipientToken = await getRecipientToken(recipientId);
+    
+    if (!recipientToken) {
+      console.log('⚠️ No push token found for recipient:', recipientId);
+      return;
+    }
+    
+    console.log('✅ Found push token:', recipientToken.slice(0, 20) + '...');
+
+    // Send the notification with recipientUserId for error handling
+    await sendPushNotification(recipientToken, {
+      messageId,
+      chatId: conversationId,
+      senderId,
+      senderName,
+      text,
+      recipientUserId: recipientId, // ✅ Pass recipient ID for DeviceNotRegistered handling
+    });
+    
+    console.log('✅ Push notification sent successfully');
+  } catch (error) {
+    console.error('❌ Error in sendPushNotificationToRecipient:', error);
+    throw error;
+  }
 }
 
 // ─── Mark read ───────────────────────────────

@@ -102,7 +102,11 @@ export default function SettingsScreen() {
 
       <View className="bg-white">
         <SettingsRow icon="person-outline" label="Edit Profile" onPress={() => {}} />
-        <SettingsRow icon="notifications-outline" label="Notifications" onPress={() => {}} />
+        <SettingsRow 
+          icon="notifications-outline" 
+          label="Notifications" 
+          onPress={() => router.push('/(tabs)/notifications')} 
+        />
         <SettingsRow icon="moon-outline" label="Appearance" onPress={() => {}} />
       </View>
 

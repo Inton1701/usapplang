@@ -9,59 +9,64 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
 export async function registerForPushNotificationsAsync(): Promise<string | undefined> {
-  let token: string | undefined;
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-      sound: 'default',
-    });
+  if (!Device.isDevice) {
+    console.warn('Push notifications require a physical device');
+    return undefined;
   }
 
-  if (Device.isDevice) {
+  try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-    
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-    
+
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+      console.warn('User denied push permissions');
       return undefined;
     }
-    
-    try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-      
-      if (!projectId) {
-        console.error('Project ID not found');
-        return undefined;
-      }
-      
-      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    } catch (error) {
-      console.error('Error getting push token:', error);
-    }
-  } else {
-    console.log('Must use physical device for Push Notifications');
-  }
 
-  return token;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      console.error('EAS projectId not configured (expo.extra.eas.projectId)');
+      return undefined;
+    }
+
+    const tokenResp = await Notifications.getExpoPushTokenAsync({ projectId });
+    const token = tokenResp.data;
+    console.log('✅ Expo push token:', token);
+    return token;
+  } catch (err) {
+    console.error('❌ Failed to get push token', err);
+    return undefined;
+  }
+}
+
+/**
+ * Get the last notification sent to the app
+ * Used to handle app launch from killed state via notification tap
+ */
+export async function getLastNotificationAsync(): Promise<Notifications.Notification | null> {
+  try {
+    const notification = await Notifications.getLastNotificationResponseAsync();
+    return notification?.notification ?? null;
+  } catch (error) {
+    console.error('Error getting last notification:', error);
+    return null;
+  }
 }
 
 export async function schedulePushNotification(
   title: string,
   body: string,
-  data?: object
+  data?: Record<string, unknown>
 ): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -70,6 +75,9 @@ export async function schedulePushNotification(
       data,
       sound: 'default',
     },
-    trigger: { seconds: 1 },
+    trigger: { 
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 1 
+    },
   });
 }

@@ -9,3 +9,6 @@ export * from './layout';
 
 // Icons
 export * from './icons';
+
+// Notifications
+export { NotificationsHistory } from './NotificationsHistory';

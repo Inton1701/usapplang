@@ -41,6 +41,18 @@ export interface Message {
   createdAt: number;
 }
 
+export interface Notification {
+  id: string;
+  recipientId: string; // user who receives the notification
+  senderId: string; // user who sent the message
+  senderName: string; // cached for quick display
+  messageId: string;
+  conversationId: string;
+  messagePreview: string; // first 100 chars
+  isRead: boolean;
+  createdAt: number;
+}
+
 // ──────────────────────────────────────────────
 // WebSocket event types
 // ──────────────────────────────────────────────
