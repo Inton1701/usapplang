@@ -177,6 +177,8 @@ export async function sendMessage(
         unreadCount: { [participants[0]]: 0, [participants[1]]: 0 },
         createdAt: now,
         updatedAt: now,
+        status: 'active',
+        initiatedBy: ''
       };
       await setDoc(convoRef, newConvo);
       console.log('✅ Conversation created');

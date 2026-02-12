@@ -116,7 +116,6 @@ export default function SettingsScreen() {
           label="Edit Profile"
           onPress={() => router.push('/account')}
         />
-        <SettingsRow icon="notifications-outline" label="Notifications" onPress={() => {}} />
         <SettingsRow icon="moon-outline" label="Appearance" onPress={() => {}} />
       </View>
 

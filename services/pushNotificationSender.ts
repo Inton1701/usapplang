@@ -182,12 +182,9 @@ async function checkReceiptsAfterDelay(
             console.warn(
               '   → Device token is invalid/expired. Removing from Firestore...'
             );
-            // Remove invalid token from Firestore (async, don't block)
+            // Remove invalid token from Firestore (async, non-blocking)
             if (options?.recipientUserId) {
-              handleDeviceNotRegistered(options.recipientUserId)
-                .catch((err) =>
-                  console.error('Failed to clean up invalid token:', err)
-                );
+              handleDeviceNotRegistered(options.recipientUserId);
             }
           }
         } else {
@@ -226,6 +223,7 @@ async function checkReceiptsAfterDelay(
 /**
  * Handle DeviceNotRegistered error by removing invalid token from Firestore
  * This prevents future attempts to send to a stale token
+ * NOTE: Errors are logged but not thrown - this is a cleanup operation
  */
 async function handleDeviceNotRegistered(recipientUserId: string): Promise<void> {
   try {
@@ -234,7 +232,7 @@ async function handleDeviceNotRegistered(recipientUserId: string): Promise<void>
     await removeTokenFromFirebase(recipientUserId);
     console.log(`Removed invalid token for user ${recipientUserId}`);
   } catch (error) {
-    console.error('Failed to handle DeviceNotRegistered:', error);
-    throw error;
+    // Log error but don't throw - this is a non-critical cleanup operation
+    console.error('Failed to clean up invalid token:', error);
   }
 }
