@@ -9,8 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Screen,
   ChatHeader,
@@ -24,8 +26,9 @@ import { PhoneIcon, VideoIcon } from '@/components/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useMessages, useSendMessage, useMarkRead } from '@/hooks/useMessages';
 import { useWebSocketChat } from '@/hooks/useWebSocketChat';
-import { getUser } from '@/services/usersService';
+import { useUserPresence } from '@/hooks/useUserPresence';
 import { onMessagesSnapshot } from '@/services/messagesService';
+import { formatLastSeen } from '@/utils/format';
 import type { Message, User } from '@/types';
 
 export default function ChatScreen() {
@@ -35,12 +38,24 @@ export default function ChatScreen() {
   }>();
   const { user } = useAuth();
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
-  // ── Other user info ──
-  const [otherUser, setOtherUser] = useState<User | null>(null);
-  useEffect(() => {
-    if (otherUid) getUser(otherUid).then(setOtherUser);
-  }, [otherUid]);
+  // ── Other user info (real-time presence) ──
+  const { data: otherUser, isLoading: isLoadingUser } = useUserPresence(otherUid);
+
+  // Log presence data for debugging
+  React.useEffect(() => {
+    if (otherUser && otherUid) {
+      console.log('[ChatScreen] Other user presence update:', {
+        uid: otherUser.uid,
+        name: otherUser.name,
+        isOnline: otherUser.isOnline,
+        lastActiveAt: otherUser.lastActiveAt,
+        status: otherUser.status,
+        timestamp: Date.now(),
+      });
+    }
+  }, [otherUser, otherUid]);
 
   // ── Messages (infinite scroll) ──
   const {
@@ -86,6 +101,14 @@ export default function ChatScreen() {
   // ── Typing indicator state ──
   const [peerTyping, setPeerTyping] = useState(false);
 
+  // ── Scroll to bottom when keyboard shows ──
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 100);
+    });
+    return () => showSub.remove();
+  }, []);
+
   // ── Render message item ──
   const renderItem = useCallback(
     ({ item }: { item: Message }) => {
@@ -117,73 +140,78 @@ export default function ChatScreen() {
 
   return (
     <Screen safe={false}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        {/* Header */}
-        <ChatHeader
-          title={otherUser?.name ?? 'Chat'}
-          subtitle={
-            otherUser?.status === 'online'
-              ? 'Online'
-              : otherUser?.lastSeen
-                ? `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`
-                : ''
-          }
-          avatar={otherUser?.photoURL}
-          onBackPress={() => router.back()}
-          rightActions={
-            <View className="flex-row">
-              <IconButton
-                icon={<PhoneIcon size={20} color="#3b82f6" />}
-                accessibilityLabel="Voice call"
-                onPress={() => {}}
-              />
-              <IconButton
-                icon={<VideoIcon size={20} color="#3b82f6" />}
-                accessibilityLabel="Video call"
-                onPress={() => {}}
-                className="ml-1"
-              />
-            </View>
-          }
-        />
-
-        {/* Message list */}
-        {isLoading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#3b82f6" />
-          </View>
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(m) => m.id}
-            renderItem={renderItem}
-            inverted
-            contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8 }}
-            onEndReached={() => {
-              if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-            }}
-            onEndReachedThreshold={0.3}
-            ListFooterComponent={
-              isFetchingNextPage ? (
-                <ActivityIndicator size="small" color="#3b82f6" className="py-4" />
-              ) : null
+      <View style={{ flex: 1, paddingTop: insets.top }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
+          keyboardVerticalOffset={0}
+        >
+          {/* Header */}
+          <ChatHeader
+            title={otherUser?.name ?? 'Chat'}
+            subtitle={
+              otherUser?.isOnline
+                ? 'Online'
+                : otherUser?.lastActiveAt
+                  ? `Last seen ${formatLastSeen(otherUser.lastActiveAt)}`
+                  : ''
             }
-            ListHeaderComponent={
-              peerTyping ? (
-                <TypingIndicator userName={otherUser?.name} className="mb-2 ml-2" />
-              ) : null
+            avatar={otherUser?.photoURL}
+            isOnline={otherUser?.isOnline}
+            onBackPress={() => router.back()}
+            rightActions={
+              <View className="flex-row">
+                <IconButton
+                  icon={<PhoneIcon size={20} color="#3b82f6" />}
+                  accessibilityLabel="Voice call"
+                  onPress={() => {}}
+                />
+                <IconButton
+                  icon={<VideoIcon size={20} color="#3b82f6" />}
+                  accessibilityLabel="Video call"
+                  onPress={() => {}}
+                  className="ml-1"
+                />
+              </View>
             }
           />
-        )}
 
-        {/* Composer */}
-        <MessageComposer onSend={handleSend} />
-      </KeyboardAvoidingView>
+          {/* Message list */}
+          {isLoading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#3b82f6" />
+            </View>
+          ) : (
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(m) => m.id}
+              renderItem={renderItem}
+              inverted
+              contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8 }}
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+              }}
+              onEndReachedThreshold={0.3}
+              ListFooterComponent={
+                isFetchingNextPage ? (
+                  <ActivityIndicator size="small" color="#3b82f6" className="py-4" />
+                ) : null
+              }
+              ListHeaderComponent={
+                peerTyping ? (
+                  <TypingIndicator userName={otherUser?.name} className="mb-2 ml-2" />
+                ) : null
+              }
+            />
+          )}
+
+          {/* Composer */}
+          <View style={{ paddingBottom: insets.bottom }}>
+            <MessageComposer onSend={handleSend} />
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

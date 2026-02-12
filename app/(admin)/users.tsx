@@ -59,6 +59,8 @@ export default function AdminUsersScreen() {
         name,
         email,
         status: 'offline',
+        isOnline: false,
+        lastActiveAt: Date.now(),
       });
       console.log('[AdminUsersScreen] User profile created');
       return cred.user;

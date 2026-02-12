@@ -16,5 +16,27 @@ export type { IconButtonProps } from './IconButton';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
+export { PasswordInput } from './PasswordInput';
+export type { PasswordInputProps } from './PasswordInput';
+
+export { ProfileCarousel } from './ProfileCarousel';
+export type { ProfileCarouselProps } from './ProfileCarousel';
+
+export { StoriesCarousel } from './StoriesCarousel';
+export type { StoriesCarouselProps } from './StoriesCarousel';
+
 export { Text } from './Text';
 export type { TextProps } from './Text';
+
+export { DatePicker } from './DatePicker';
+export type { DatePickerProps } from './DatePicker';
+
+export { BirthdayPicker } from './BirthdayPicker';
+export type { BirthdayPickerProps } from './BirthdayPicker';
+
+export { Select } from './Select';
+export type { SelectProps } from './Select';
+
+export { SegmentedTabs } from './SegmentedTabs';
+export type { SegmentedTabsProps } from './SegmentedTabs';
+

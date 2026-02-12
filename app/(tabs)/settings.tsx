@@ -9,6 +9,7 @@ import { Screen, Text, Avatar, Row, Spacer, Divider, Button } from '@/components
 import { SettingsIcon } from '@/components/icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresence } from '@/hooks/usePresence';
 import { useDev } from '@/providers/DevProvider';
 import { useNotifications } from '@/hooks/usePushNotification';
 import * as Clipboard from 'expo-clipboard';
@@ -24,6 +25,9 @@ export default function SettingsScreen() {
       console.log('📱 Expo Push Token:', expoPushToken);
     }
   }, [expoPushToken]);
+  
+  // Track user presence (online/offline)
+  usePresence();
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure?', [
@@ -107,6 +111,12 @@ export default function SettingsScreen() {
           label="Notifications" 
           onPress={() => router.push('/(tabs)/notifications')} 
         />
+        <SettingsRow
+          icon="person-outline"
+          label="Edit Profile"
+          onPress={() => router.push('/account')}
+        />
+        <SettingsRow icon="notifications-outline" label="Notifications" onPress={() => {}} />
         <SettingsRow icon="moon-outline" label="Appearance" onPress={() => {}} />
       </View>
 

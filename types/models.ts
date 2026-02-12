@@ -7,8 +7,11 @@ export interface User {
   name: string;
   email: string;
   photoURL?: string;
+  photos?: string[]; // Array of photo URLs for carousel
   status: 'online' | 'offline' | 'away';
-  lastSeen?: number; // timestamp ms
+  isOnline: boolean; // Real-time online status
+  lastActiveAt: number; // timestamp ms
+  lastSeen?: number; // timestamp ms (deprecated, use lastActiveAt)
   createdAt: number;
   updatedAt: number;
 }
@@ -22,6 +25,8 @@ export interface Contact {
 export interface Conversation {
   id: string;
   participants: string[]; // uids – always 2 for 1‑to‑1
+  status: 'active' | 'pending' | 'declined'; // message request status
+  initiatedBy: string; // uid of who started the conversation
   lastMessage?: {
     text: string;
     senderId: string;
