@@ -106,10 +106,38 @@ export default function ChatScreen() {
   const uploadMut = useUploadAttachment(conversationId);
 
   const handleSend = useCallback(
-    (text: string) => sendMut.mutate(text),
-    [sendMut],
+    (text: string, attachments?: MessageAttachment[]) => {
+      if (!isUserInConversation) {
+        console.warn('🚫 SECURITY: Attempted to send message in unauthorized conversation');
+        return;
+      }
+      sendMut.mutate({ text, attachments });
+    },
+    [sendMut, isUserInConversation],
   );
 
+  const handleRetry = useCallback(
+    (message: Message) => retryMut.mutate(message),
+    [retryMut],
+  );
+
+  const handleDelete = useCallback(
+    (messageId: string) => deleteMut.mutate(messageId),
+    [deleteMut],
+  );
+
+  const handleUploadAttachment = useCallback(
+    async (file: { uri: string; type: string; name: string; size: number }) => {
+      return uploadMut.mutateAsync(file);
+    },
+    [uploadMut],
+  );
+  const handleViewProfile = useCallback(() => {
+    if (otherUid) {
+      router.push(`/profile/${otherUid}`);
+    }
+  }, [otherUid]);
+  // Only mark read if authorized
   // ── Mark read on mount ──
   const markRead = useMarkRead(isUserInConversation ? conversationId : '');
   useEffect(() => {
