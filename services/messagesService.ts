@@ -27,10 +27,12 @@ import {
   DocumentSnapshot,
   Timestamp,
   increment,
+  deleteDoc,
 } from 'firebase/firestore';
+import { getInfoAsync } from 'expo-file-system/legacy';
 import { db } from '@/lib/firebase';
 import { COLLECTIONS, PAGE_SIZE } from '@/constants';
-import type { Conversation, Message } from '@/types';
+import type { Conversation, Message, MessageAttachment } from '@/types';
 
 // ─── Helpers ─────────────────────────────────
 
@@ -130,18 +132,128 @@ export function onMessagesSnapshot(
 
 // ─── Send message ────────────────────────────
 
-export async function sendMessage(
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+export interface SendMessageParams {
+  conversationId: string;
+  senderId: string;
+  text: string;
+  attachments?: MessageAttachment[];
+  localId?: string;
+}
+
+export async function uploadAttachment(
   conversationId: string,
-  senderId: string,
-  text: string,
-): Promise<Message> {
+  file: { uri: string; type: string; name: string; size: number; duration?: number },
+): Promise<MessageAttachment> {
+  console.log('[uploadAttachment] Starting upload:', { conversationId, file });
+
+  try {
+    // Get accurate file size
+    let fileSize = file.size;
+    if (file.uri.startsWith('file://')) {
+      try {
+        const fileInfo = await getInfoAsync(file.uri);
+        if (fileInfo.exists && typeof fileInfo.size === 'number') {
+          fileSize = fileInfo.size;
+          console.log('[uploadAttachment] Got accurate file size:', fileSize);
+        }
+      } catch (fsError) {
+        console.log('[uploadAttachment] getInfoAsync failed, using provided size:', fsError);
+      }
+    }
+
+    // Validate file size (5MB limit)
+    if (fileSize > MAX_FILE_SIZE) {
+      throw new Error(`File size (${(fileSize / 1024 / 1024).toFixed(2)}MB) exceeds 5MB limit`);
+    }
+
+    // Convert file to base64 (same method as profile pictures)
+    console.log('[uploadAttachment] Converting to base64...');
+    const response = await fetch(file.uri);
+    const blob = await response.blob();
+    
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+        const base64Data = result.split(',')[1] || result;
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    console.log('[uploadAttachment] Base64 conversion complete, length:', base64.length);
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileName = `${conversationId}_${timestamp}_${sanitizedName}`;
+
+    // Determine attachment type
+    let attachmentType: 'image' | 'file' | 'voice' = 'file';
+    if (file.type.startsWith('image/')) {
+      attachmentType = 'image';
+    } else if (file.type.startsWith('audio/')) {
+      attachmentType = 'voice';
+    }
+
+    // Store as base64 in Firestore (same as profile pictures)
+    const attachmentDoc = {
+      fileName,
+      base64Data: base64,
+      contentType: file.type,
+      size: fileSize,
+      conversationId,
+      uploadedAt: serverTimestamp(),
+    };
+
+    const attachmentsRef = collection(db, 'attachments');
+    const docRef = await addDoc(attachmentsRef, attachmentDoc);
+
+    console.log('[uploadAttachment] Saved to Firestore:', docRef.id);
+
+    // Return attachment metadata
+    const attachment: MessageAttachment = {
+      id: docRef.id,
+      url: docRef.id, // Use document ID as reference
+      type: attachmentType,
+      name: file.name,
+      size: fileSize,
+      mimeType: file.type,
+      ...(file.duration && { duration: file.duration }), // Add duration for audio files
+    };
+
+    console.log('[uploadAttachment] Upload complete:', attachment);
+    return attachment;
+  } catch (error) {
+    console.error('[uploadAttachment] Upload failed:', error);
+    if (error instanceof Error) {
+      console.error('[uploadAttachment] Error message:', error.message);
+      console.error('[uploadAttachment] Error stack:', error.stack);
+    }
+    throw error;
+  }
+}
+
+export async function sendMessage({
+  conversationId,
+  senderId,
+  text,
+  attachments = [],
+  localId,
+}: SendMessageParams): Promise<Message> {
   const now = Date.now();
   const msg: Omit<Message, 'id'> = {
     conversationId,
     senderId,
     text,
+    attachments,
     status: 'sent',
     createdAt: now,
+    localId,
   };
 
   const ref = await addDoc(messagesRef(conversationId), msg);
@@ -152,8 +264,24 @@ export async function sendMessage(
   if (convoSnap.exists()) {
     const convo = convoSnap.data() as Conversation;
     const otherUid = convo.participants.find((p) => p !== senderId) ?? '';
+    
+    // Determine message type from attachments
+    let messageType: 'text' | 'image' | 'file' | 'audio' = 'text';
+    if (attachments.length > 0) {
+      const firstAttachment = attachments[0];
+      if (firstAttachment.type === 'image') messageType = 'image';
+      else if (firstAttachment.type === 'voice') messageType = 'audio';
+      else if (firstAttachment.type === 'file') messageType = 'file';
+    }
+    
     await updateDoc(convoRef, {
-      lastMessage: { text, senderId, timestamp: now },
+      lastMessage: { 
+        text, 
+        senderId, 
+        timestamp: now,
+        type: messageType,
+        deleted: false,
+      },
       updatedAt: now,
       [`unreadCount.${otherUid}`]: increment(1),
     });
@@ -206,4 +334,64 @@ export async function acceptMessageRequest(
 export async function declineMessageRequest(conversationId: string): Promise<void> {
   const convoRef = doc(db, COLLECTIONS.CONVERSATIONS, conversationId);
   await updateDoc(convoRef, { status: 'declined', updatedAt: Date.now() });
+}
+
+// ─── Delete message ──────────────────────────
+
+export async function deleteMessage(
+  conversationId: string,
+  messageId: string,
+  userId: string,
+  userName: string,
+): Promise<void> {
+  const ref = doc(db, COLLECTIONS.CONVERSATIONS, conversationId, COLLECTIONS.MESSAGES, messageId);
+  
+  // Get the message first to check if it's the last message
+  const msgSnap = await getDoc(ref);
+  if (!msgSnap.exists()) return;
+  
+  const msgData = msgSnap.data() as Message;
+  
+  // Update the message as deleted
+  await updateDoc(ref, {
+    deleted: true,
+    deletedAt: Date.now(),
+    text: `${userName} deleted a message`,
+    senderName: userName,
+    attachments: [], // Remove attachments when deleted
+  });
+  
+  // If this is the last message in the conversation, update the conversation's lastMessage
+  const convoRef = doc(db, COLLECTIONS.CONVERSATIONS, conversationId);
+  const convoSnap = await getDoc(convoRef);
+  if (convoSnap.exists()) {
+    const convo = convoSnap.data() as Conversation;
+    // Check if the deleted message is the last message
+    if (convo.lastMessage?.timestamp === msgData.createdAt) {
+      await updateDoc(convoRef, {
+        'lastMessage.deleted': true,
+        'lastMessage.text': `${userName} deleted a message`,
+      });
+    }
+  }
+}
+
+// ─── Attachment helpers ──────────────────────
+
+export async function getAttachmentData(attachmentId: string): Promise<string> {
+  try {
+    const docRef = doc(db, 'attachments', attachmentId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      throw new Error('Attachment not found');
+    }
+    
+    const data = docSnap.data();
+    // Return as data URL for display
+    return `data:${data.contentType};base64,${data.base64Data}`;
+  } catch (error) {
+    console.error('[getAttachmentData] Failed to retrieve attachment:', error);
+    throw error;
+  }
 }

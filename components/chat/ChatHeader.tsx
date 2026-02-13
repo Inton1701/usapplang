@@ -11,6 +11,7 @@ export interface ChatHeaderProps {
   avatar?: string;
   isOnline?: boolean;
   onBackPress?: () => void;
+  onAvatarPress?: () => void;
   rightActions?: React.ReactNode;
   className?: string;
 }
@@ -21,6 +22,7 @@ export function ChatHeader({
   avatar,
   isOnline,
   onBackPress,
+  onAvatarPress,
   rightActions,
   className = '',
 }: ChatHeaderProps) {
@@ -37,7 +39,13 @@ export function ChatHeader({
         />
       )}
       
-      {avatar && (
+      <Pressable 
+        className="flex-row items-center flex-1" 
+        onPress={onAvatarPress}
+        disabled={!onAvatarPress}
+        accessibilityRole="button"
+        accessibilityLabel={onAvatarPress ? `View ${title}'s profile` : undefined}
+      >
         <Avatar 
           source={avatar} 
           fallbackText={title} 
@@ -46,17 +54,17 @@ export function ChatHeader({
           showPresence={isOnline !== undefined}
           className="mr-3" 
         />
-      )}
-      
-      <Pressable className="flex-1" onPress={() => {}}>
-        <Text variant="title" className="text-base">
-          {title}
-        </Text>
-        {subtitle && (
-          <Text variant="muted" className="text-xs">
-            {subtitle}
+        
+        <View className="flex-1">
+          <Text variant="title" className="text-base">
+            {title}
           </Text>
-        )}
+          {subtitle && (
+            <Text variant="muted" className="text-xs">
+              {subtitle}
+            </Text>
+          )}
+        </View>
       </Pressable>
       
       {rightActions && <View className="ml-2">{rightActions}</View>}

@@ -4,6 +4,10 @@ export type { ChatBubbleProps } from './ChatBubble';
 export { ChatHeader } from './ChatHeader';
 export type { ChatHeaderProps } from './ChatHeader';
 
+export { AudioPlayer } from './AudioPlayer';
+
+export { ImagePreviewModal } from './ImagePreviewModal';
+
 export { MessageComposer } from './MessageComposer';
 export type { MessageComposerProps } from './MessageComposer';
 

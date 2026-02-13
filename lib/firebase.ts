@@ -23,4 +23,12 @@ export const auth = getAuth(app);
 
 export const db = getFirestore(app);
 
+// Log configuration on init (remove in production)
+if (__DEV__) {
+  console.log('[Firebase] Initialized with config:', {
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+  });
+}
+
 export default app;

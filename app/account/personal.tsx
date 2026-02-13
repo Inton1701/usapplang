@@ -43,13 +43,14 @@ export default function PersonalInfoScreen() {
 
   const pickImage = async () => {
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'], // ✅ SAFE & WORKS IN ALL SDK VERSIONS
+    mediaTypes: ['images'], 
     quality: 0.7,
-    allowsEditing: true,
-    aspect: [1, 1], // nice square crop like Facebook
+    allowsEditing: false, // Disable native editor to avoid dark mode theme
+    aspect: [1, 1],
   });
 
   if (!result.canceled) {
+    // Use expo-image-manipulator if you need to crop with light theme
     await saveLocalProfileImage(result.assets[0].uri);
   }
 };
