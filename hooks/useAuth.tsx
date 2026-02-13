@@ -11,9 +11,12 @@ import {
   createUserWithEmailAndPassword,
   type User as FirebaseUser,
 } from 'firebase/auth';
+import { doc, updateDoc } from 'firebase/firestore';
 import * as SecureStore from 'expo-secure-store';
 import { auth } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { createUser, getUser } from '@/services/usersService';
+import { COLLECTIONS } from '@/constants';
 import type { User } from '@/types';
 
 const SESSION_KEY = 'user_session_token';
@@ -157,6 +160,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     setLoading(true);
     try {
+      // Set user offline BEFORE clearing auth token
+      if (firebaseUser) {
+        try {
+          const userRef = doc(db, COLLECTIONS.USERS, firebaseUser.uid);
+          await updateDoc(userRef, {
+            isOnline: false,
+            lastActiveAt: Date.now(),
+            status: 'offline',
+          });
+          console.log('[useAuth] User set to offline before logout');
+        } catch (err) {
+          console.warn('[useAuth] Failed to set offline before logout:', err);
+          // Don't fail logout if offline update fails
+        }
+      }
+
       // Clear push token before logging out
       if (firebaseUser) {
         const { removeTokenFromFirebase } = await import('@/services/firebaseService');
@@ -168,14 +187,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Don't fail logout if token removal fails
         }
       }
-      
+
       console.log('[useAuth] Logging out and clearing session');
-    try {
-      await SecureStore.deleteItemAsync(SESSION_EMAIL_KEY);
-    } catch (error) {
-      console.error('[useAuth] Error clearing session on logout:', error);
-    }
-    await signOut(auth);
+      try {
+        await SecureStore.deleteItemAsync(SESSION_EMAIL_KEY);
+      } catch (error) {
+        console.error('[useAuth] Error clearing session on logout:', error);
+      }
+      await signOut(auth);
       console.log('[useAuth] Logout successful');
     } catch (error) {
       console.error('[useAuth] Logout failed:', error);

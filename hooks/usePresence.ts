@@ -41,7 +41,13 @@ export function usePresence() {
           status: 'offline',
         });
         console.log('[usePresence] User set to offline');
-      } catch (error) {
+      } catch (error: any) {
+        // Suppress "Missing or insufficient permissions" error during logout
+        // This is expected when auth token is cleared before cleanup runs
+        if (error?.code === 'permission-denied') {
+          console.log('[usePresence] Skipped setOffline during logout (expected)');
+          return;
+        }
         console.error('[usePresence] Error setting offline:', error);
       }
     };

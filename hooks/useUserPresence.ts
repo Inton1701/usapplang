@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/constants';
+import { useAuth } from './useAuth';
 import type { User } from '@/types';
 
 /**
@@ -14,11 +15,12 @@ import type { User } from '@/types';
  */
 export function useUserPresence(uid: string | undefined) {
   const qc = useQueryClient();
+  const { firebaseUser } = useAuth();
 
   return useQuery<User | null>({
     queryKey: ['user', uid],
     queryFn: async () => {
-      if (!uid) return null;
+      if (!uid || !firebaseUser) return null;
       
       console.log('[useUserPresence] Initial fetch for uid:', uid);
       
@@ -47,6 +49,12 @@ export function useUserPresence(uid: string | undefined) {
             }
           },
           (error) => {
+            // Suppress permission-denied errors that occur during logout
+            if ((error as any)?.code === 'permission-denied') {
+              console.log('[useUserPresence] Permission denied (expected during logout)');
+              resolve(null);
+              return;
+            }
             console.error('[useUserPresence] Snapshot error for uid:', uid, error);
             resolve(null);
           }
@@ -59,7 +67,7 @@ export function useUserPresence(uid: string | undefined) {
         };
       });
     },
-    enabled: !!uid,
+    enabled: !!uid && !!firebaseUser,
     staleTime: Infinity, // Real-time subscription keeps it fresh
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes after unmount
   });
