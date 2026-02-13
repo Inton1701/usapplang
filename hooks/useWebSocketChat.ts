@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { wsClient } from '@/lib/wsClient';
 import { QK } from '@/constants';
 import { useAuth } from './useAuth';
-import type { WSEvent, WSNewMessagePayload, WSStatusPayload, Message } from '@/types';
+import type { WSEvent, WSNewMessagePayload, WSStatusPayload, WSDeletedMessagePayload, Message } from '@/types';
 
 const WS_URL = process.env.EXPO_PUBLIC_WS_URL ?? 'ws://localhost:8080';
 
@@ -100,6 +100,33 @@ export function useWebSocketChat(conversationId?: string) {
           ...page,
           messages: page.messages.map((m: Message) =>
             m.id === messageId ? { ...m, status } : m,
+          ),
+        }));
+        return { ...old, pages: newPages };
+      });
+    });
+
+    return unsub;
+  }, [qc]);
+
+  // ── Subscribe to message deletions ──
+  useEffect(() => {
+    const unsub = wsClient.on('message:deleted', (event: WSEvent) => {
+      const { messageId, conversationId: cid, deletedByName } = event.payload as WSDeletedMessagePayload;
+
+      qc.setQueryData(QK.MESSAGES(cid), (old: any) => {
+        if (!old) return old;
+        const newPages = old.pages.map((page: any) => ({
+          ...page,
+          messages: page.messages.map((m: Message) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  deleted: true,
+                  text: `${deletedByName} deleted a message`,
+                  attachments: [],
+                }
+              : m,
           ),
         }));
         return { ...old, pages: newPages };

@@ -95,6 +95,14 @@ export const EyeOffIcon = ({ size = 24, color = '#6b7280', ...props }: IconProps
   <Ionicons name="eye-off-outline" size={size} color={color} {...props} />
 );
 
+export const PlayIcon = ({ size = 24, color = '#fff', ...props }: IconProps) => (
+  <Ionicons name="play" size={size} color={color} {...props} />
+);
+
+export const PauseIcon = ({ size = 24, color = '#fff', ...props }: IconProps) => (
+  <Ionicons name="pause" size={size} color={color} {...props} />
+);
+
 // Export icon libraries for custom usage
 export {
   Ionicons,

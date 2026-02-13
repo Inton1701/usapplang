@@ -11,9 +11,13 @@ import {
   createUserWithEmailAndPassword,
   type User as FirebaseUser,
 } from 'firebase/auth';
+import * as SecureStore from 'expo-secure-store';
 import { auth } from '@/lib/firebase';
 import { createUser, getUser } from '@/services/usersService';
 import type { User } from '@/types';
+
+const SESSION_KEY = 'user_session_token';
+const SESSION_EMAIL_KEY = 'user_session_email';
 
 interface AuthState {
   firebaseUser: FirebaseUser | null;
@@ -32,6 +36,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Try to restore session on mount
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const savedEmail = await SecureStore.getItemAsync(SESSION_EMAIL_KEY);
+        if (savedEmail) {
+          console.log('[useAuth] Found saved session for email:', savedEmail);
+          // Firebase Auth automatically handles persistence in React Native
+          // We just wait for onAuthStateChanged to fire
+        }
+      } catch (error) {
+        console.error('[useAuth] Error restoring session:', error);
+      }
+    };
+    
+    restoreSession();
+  }, []);
+
   useEffect(() => {
     console.log('[useAuth] Setting up auth state listener');
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
@@ -43,13 +65,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const profile = await getUser(fbUser.uid);
           console.log('[useAuth] User profile fetched:', profile);
           setUser(profile);
+          
+          // Save session info securely
+          if (fbUser.email) {
+            await SecureStore.setItemAsync(SESSION_EMAIL_KEY, fbUser.email);
+          }
         } catch (error) {
           console.error('[useAuth] Error fetching user profile:', error);
           setUser(null);
         }
       } else {
-        console.log('[useAuth] No user, clearing profile');
+        console.log('[useAuth] No user, clearing profile and session');
         setUser(null);
+        // Clear session on logout
+        try {
+          await SecureStore.deleteItemAsync(SESSION_EMAIL_KEY);
+        } catch (error) {
+          console.error('[useAuth] Error clearing session:', error);
+        }
       }
       setLoading(false);
     });
@@ -122,6 +155,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    console.log('[useAuth] Logging out and clearing session');
+    try {
+      await SecureStore.deleteItemAsync(SESSION_EMAIL_KEY);
+    } catch (error) {
+      console.error('[useAuth] Error clearing session on logout:', error);
+    }
     await signOut(auth);
   }, []);
 
