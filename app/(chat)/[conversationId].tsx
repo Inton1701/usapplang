@@ -40,8 +40,27 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
 
+  // SECURITY: Verify current user is a participant in this conversation
+  const isUserInConversation = conversationId && user?.uid
+    ? conversationId.split('_').includes(user.uid)
+    : false;
+
+  React.useEffect(() => {
+    if (!isUserInConversation && conversationId && user?.uid) {
+      console.error(
+        'SECURITY VIOLATION: User attempted to access conversation they are not in.',
+        `User: ${user.uid}, Conversation: ${conversationId}`
+      );
+      // Navigate back to prevent unauthorized access
+      router.back();
+    }
+  }, [conversationId, user?.uid, isUserInConversation, router]);
+
+  // Only load other user if current user is authorized
   // ── Other user info (real-time presence) ──
-  const { data: otherUser, isLoading: isLoadingUser } = useUserPresence(otherUid);
+  const { data: otherUser, isLoading: isLoadingUser } = useUserPresence(
+    isUserInConversation ? otherUid : undefined
+  );
 
   // Log presence data for debugging
   React.useEffect(() => {
@@ -57,6 +76,7 @@ export default function ChatScreen() {
     }
   }, [otherUser, otherUid]);
 
+  // Only load messages if current user is authorized
   // ── Messages (infinite scroll) ──
   const {
     data,
@@ -64,39 +84,49 @@ export default function ChatScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useMessages(conversationId);
+  } = useMessages(isUserInConversation ? conversationId : '');
 
   const messages = useMemo(
     () => data?.pages.flatMap((p) => p.messages) ?? [],
     [data],
   );
 
+  // Only allow sending if authorized
   // ── Send message ──
-  const sendMut = useSendMessage(conversationId);
+  const sendMut = useSendMessage(isUserInConversation ? conversationId : '');
 
   const handleSend = useCallback(
-    (text: string) => sendMut.mutate(text),
-    [sendMut],
+    (text: string) => {
+      if (!isUserInConversation) {
+        console.warn('🚫 SECURITY: Attempted to send message in unauthorized conversation');
+        return;
+      }
+      sendMut.mutate(text);
+    },
+    [sendMut, isUserInConversation],
   );
 
+  // Only mark read if authorized
   // ── Mark read on mount ──
-  const markRead = useMarkRead(conversationId);
+  const markRead = useMarkRead(isUserInConversation ? conversationId : '');
   useEffect(() => {
-    markRead.mutate();
-  }, [conversationId]);
+    if (isUserInConversation) {
+      markRead.mutate();
+    }
+  }, [conversationId, isUserInConversation, markRead]);
 
   // ── WebSocket integration ──
   const { isConnected, sendTyping } = useWebSocketChat(conversationId);
 
   // ── Firebase fallback when WS is not connected ──
   useEffect(() => {
-    if (isConnected) return; // WS handles it
+    if (isConnected || !isUserInConversation) return; // WS handles it, or user not authorized
     const unsub = onMessagesSnapshot(conversationId, () => {
       // The snapshot listener triggers a refetch for fresh data
       // We don't directly set messages — TanStack is the source of truth.
     });
     return unsub;
-  }, [conversationId, isConnected]);
+  }, [conversationId, isConnected, isUserInConversation]);
 
   // ── Typing indicator state ──
   const [peerTyping, setPeerTyping] = useState(false);

@@ -122,8 +122,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await signOut(auth);
-  }, []);
+    setLoading(true);
+    try {
+      // Clear push token before logging out
+      if (firebaseUser) {
+        const { removeTokenFromFirebase } = await import('@/services/firebaseService');
+        try {
+          await removeTokenFromFirebase(firebaseUser.uid);
+          console.log('[useAuth] Push token removed on logout');
+        } catch (err) {
+          console.warn('[useAuth] Failed to remove push token on logout:', err);
+          // Don't fail logout if token removal fails
+        }
+      }
+      
+      await signOut(auth);
+      console.log('[useAuth] Logout successful');
+    } catch (error) {
+      console.error('[useAuth] Logout failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [firebaseUser]);
 
   return (
     <AuthContext.Provider
