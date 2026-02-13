@@ -512,7 +512,7 @@ export default function ContactsScreen() {
               : (() => {
                   // Show contacts if no conversations
                   return contacts?.map(c => ({
-                    id: c.uid,
+                    id: getConversationId(user?.uid ?? '', c.uid),
                     participants: [user?.uid ?? '', c.uid],
                     status: 'active' as const,
                     initiatedBy: c.uid,
