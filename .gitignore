@@ -33,14 +33,14 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Firebase
+google-services.json
+
 # typescript
 *.tsbuildinfo
 
 # generated native folders
 /ios
 /android
-
-.env.example
-.env.local
 
 prompt.md

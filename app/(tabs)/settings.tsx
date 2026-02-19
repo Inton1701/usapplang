@@ -2,7 +2,7 @@
 // Settings screen
 // ──────────────────────────────────────────────
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Screen, Text, Avatar, Row, Spacer, Divider, Button } from '@/components';
@@ -11,10 +11,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
 import { useDev } from '@/providers/DevProvider';
+import { useNotifications } from '@/hooks/usePushNotification';
+import * as Clipboard from 'expo-clipboard';
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { isDevMode } = useDev();
+  const { expoPushToken } = useNotifications(user?.uid || null);
+
+  // Log token for easy viewing in terminal
+  useEffect(() => {
+    if (expoPushToken) {
+      console.log(' Expo Push Token:', expoPushToken);
+    }
+  }, [expoPushToken]);
   
   // Track user presence (online/offline)
   usePresence();
@@ -32,6 +42,7 @@ export default function SettingsScreen() {
       },
     ]);
   };
+
 
   const SettingsRow = ({
     icon,
@@ -83,15 +94,21 @@ export default function SettingsScreen() {
       <Spacer size={16} />
 
       <View className="bg-white">
+        <SettingsRow icon="person-outline" label="Edit Profile" onPress={() => {}} />
+        <SettingsRow 
+          icon="notifications-outline" 
+          label="Notifications" 
+          onPress={() => router.push('/(tabs)/notifications')} 
+        />
         <SettingsRow
           icon="person-outline"
           label="Edit Profile"
           onPress={() => router.push('/account')}
         />
-        <SettingsRow icon="notifications-outline" label="Notifications" onPress={() => {}} />
         <SettingsRow icon="moon-outline" label="Appearance" onPress={() => {}} />
       </View>
 
+      
       {/* Admin entry (dev only) */}
       {isDevMode && (
         <>

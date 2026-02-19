@@ -84,11 +84,19 @@ export default function ContactsScreen() {
           const otherUid = conv.participants.find((p) => p !== user?.uid);
           if (otherUid) {
             const u = await getUser(otherUid);
-            if (u) map.set(conv.id, u);
+            if (u) {
+              map.set(conv.id, u);
+              console.log('[Contacts] Loaded user for conversation:', {
+                convId: conv.id,
+                otherUid,
+                userName: u.name
+              });
+            }
           }
         }),
       );
       setConversationUsers(map);
+      console.log('[Contacts] Total conversation users loaded:', map.size);
     };
     loadConversationUsers();
   }, [conversations, user]);
@@ -174,13 +182,50 @@ export default function ContactsScreen() {
 
   const renderConversation = ({ item }: { item: Conversation }) => {
     const otherUid = item.participants.find((p) => p !== user?.uid) ?? '';
-    const conversationUser = conversationUsers.get(item.id);
+    
+    // For real conversations use conversationUsers, for fake contact-based ones use contactUsers
+    const conversationUser = item.lastMessage !== undefined 
+      ? conversationUsers.get(item.id)
+      : contactUsers.get(otherUid);
+    
+    console.log('[renderConversation]', {
+      convId: item.id,
+      otherUid,
+      hasLastMessage: item.lastMessage !== undefined,
+      hasUser: !!conversationUser,
+      userName: conversationUser?.name,
+      mapSize: conversationUsers.size,
+      contactMapSize: contactUsers.size
+    });
+    
     const name = conversationUser?.name ?? 'Unknown';
     const isOnline = conversationUser?.isOnline ?? false;
     const unreadCount = item.unreadCount[user?.uid ?? ''] ?? 0;
     
-    // Last message preview
-    const lastMessageText = item.lastMessage?.text ?? 'No messages yet';
+    // Last message preview with attachment indicators
+    let lastMessageText = 'No messages yet';
+    
+    if (item.lastMessage) {
+      const isOwnMessage = item.lastMessage.senderId === user?.uid;
+      const prefix = isOwnMessage ? 'You: ' : '';
+      
+      if (item.lastMessage.deleted) {
+        const deletedBy = isOwnMessage ? 'You' : (conversationUser?.name?.split(' ')[0] ?? 'Someone');
+        lastMessageText = `${deletedBy} deleted a message`;
+      } else if (item.lastMessage.type === 'image') {
+        lastMessageText = `${prefix}📷 sent a photo`;
+      } else if (item.lastMessage.type === 'file') {
+        lastMessageText = `${prefix}📎 sent a file`;
+      } else if (item.lastMessage.type === 'audio') {
+        lastMessageText = `${prefix}🎤 sent an audio`;
+      } else if (item.lastMessage.text) {
+        lastMessageText = prefix + item.lastMessage.text;
+      } else {
+        // Fallback for messages without type or text (old format)
+        lastMessageText = `${prefix}Sent a message`;
+      }
+    }
+    
     const lastMessageTime = item.lastMessage?.timestamp 
       ? formatLastSeen(Date.now() - item.lastMessage.timestamp)
       : '';
@@ -467,7 +512,7 @@ export default function ContactsScreen() {
               : (() => {
                   // Show contacts if no conversations
                   return contacts?.map(c => ({
-                    id: c.uid,
+                    id: getConversationId(user?.uid ?? '', c.uid),
                     participants: [user?.uid ?? '', c.uid],
                     status: 'active' as const,
                     initiatedBy: c.uid,
@@ -479,12 +524,7 @@ export default function ContactsScreen() {
                 })()
           }
           keyExtractor={(c) => c.id}
-          renderItem={(props) => {
-            const hasLastMessage = props.item.lastMessage !== undefined;
-            return hasLastMessage ? renderConversation(props) : renderContact({
-              item: { uid: props.item.participants.find(p => p !== user?.uid) ?? '' } as Contact
-            });
-          }}
+          renderItem={renderConversation}
           refreshing={isLoading}
           onRefresh={refetch}
           ListHeaderComponent={

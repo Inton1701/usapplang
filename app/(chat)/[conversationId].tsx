@@ -24,12 +24,19 @@ import {
 } from '@/components';
 import { PhoneIcon, VideoIcon } from '@/components/icons';
 import { useAuth } from '@/hooks/useAuth';
-import { useMessages, useSendMessage, useMarkRead } from '@/hooks/useMessages';
+import {
+  useMessages,
+  useSendMessage,
+  useMarkRead,
+  useRetryMessage,
+  useDeleteMessage,
+  useUploadAttachment,
+} from '@/hooks/useMessages';
 import { useWebSocketChat } from '@/hooks/useWebSocketChat';
 import { useUserPresence } from '@/hooks/useUserPresence';
 import { onMessagesSnapshot } from '@/services/messagesService';
 import { formatLastSeen } from '@/utils/format';
-import type { Message, User } from '@/types';
+import type { Message, User, MessageAttachment } from '@/types';
 
 export default function ChatScreen() {
   const { conversationId, otherUid } = useLocalSearchParams<{
@@ -40,8 +47,27 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
 
+  // SECURITY: Verify current user is a participant in this conversation
+  const isUserInConversation = conversationId && user?.uid
+    ? conversationId.split('_').includes(user.uid)
+    : false;
+
+  React.useEffect(() => {
+    if (!isUserInConversation && conversationId && user?.uid) {
+      console.error(
+        'SECURITY VIOLATION: User attempted to access conversation they are not in.',
+        `User: ${user.uid}, Conversation: ${conversationId}`
+      );
+      // Navigate back to prevent unauthorized access
+      router.back();
+    }
+  }, [conversationId, user?.uid, isUserInConversation, router]);
+
+  // Only load other user if current user is authorized
   // ── Other user info (real-time presence) ──
-  const { data: otherUser, isLoading: isLoadingUser } = useUserPresence(otherUid);
+  const { data: otherUser, isLoading: isLoadingUser } = useUserPresence(
+    isUserInConversation ? otherUid : undefined
+  );
 
   // Log presence data for debugging
   React.useEffect(() => {
@@ -57,6 +83,7 @@ export default function ChatScreen() {
     }
   }, [otherUser, otherUid]);
 
+  // Only load messages if current user is authorized
   // ── Messages (infinite scroll) ──
   const {
     data,
@@ -64,39 +91,73 @@ export default function ChatScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useMessages(conversationId);
+  } = useMessages(isUserInConversation ? conversationId : '');
 
   const messages = useMemo(
     () => data?.pages.flatMap((p) => p.messages) ?? [],
     [data],
   );
 
+  // Only allow sending if authorized
   // ── Send message ──
-  const sendMut = useSendMessage(conversationId);
+  const sendMut = useSendMessage(isUserInConversation ? conversationId : '');
+  const retryMut = useRetryMessage(conversationId);
+  const deleteMut = useDeleteMessage(conversationId);
+  const uploadMut = useUploadAttachment(conversationId);
 
   const handleSend = useCallback(
-    (text: string) => sendMut.mutate(text),
-    [sendMut],
+    (text: string, attachments?: MessageAttachment[]) => {
+      if (!isUserInConversation) {
+        console.warn('🚫 SECURITY: Attempted to send message in unauthorized conversation');
+        return;
+      }
+      sendMut.mutate({ text, attachments });
+    },
+    [sendMut, isUserInConversation],
   );
 
+  const handleRetry = useCallback(
+    (message: Message) => retryMut.mutate(message),
+    [retryMut],
+  );
+
+  const handleDelete = useCallback(
+    (messageId: string) => deleteMut.mutate(messageId),
+    [deleteMut],
+  );
+
+  const handleUploadAttachment = useCallback(
+    async (file: { uri: string; type: string; name: string; size: number }) => {
+      return uploadMut.mutateAsync(file);
+    },
+    [uploadMut],
+  );
+  const handleViewProfile = useCallback(() => {
+    if (otherUid) {
+      router.push(`/profile/${otherUid}`);
+    }
+  }, [otherUid]);
+  // Only mark read if authorized
   // ── Mark read on mount ──
-  const markRead = useMarkRead(conversationId);
+  const markRead = useMarkRead(isUserInConversation ? conversationId : '');
   useEffect(() => {
-    markRead.mutate();
-  }, [conversationId]);
+    if (isUserInConversation) {
+      markRead.mutate();
+    }
+  }, [conversationId, isUserInConversation, markRead]);
 
   // ── WebSocket integration ──
   const { isConnected, sendTyping } = useWebSocketChat(conversationId);
 
   // ── Firebase fallback when WS is not connected ──
   useEffect(() => {
-    if (isConnected) return; // WS handles it
+    if (isConnected || !isUserInConversation) return; // WS handles it, or user not authorized
     const unsub = onMessagesSnapshot(conversationId, () => {
       // The snapshot listener triggers a refetch for fresh data
       // We don't directly set messages — TanStack is the source of truth.
     });
     return unsub;
-  }, [conversationId, isConnected]);
+  }, [conversationId, isConnected, isUserInConversation]);
 
   // ── Typing indicator state ──
   const [peerTyping, setPeerTyping] = useState(false);
@@ -116,7 +177,7 @@ export default function ChatScreen() {
       return (
         <View className="mb-1">
           <MessageListItem
-            message={item.text}
+            message={item}
             isOutgoing={isOutgoing}
             timestamp={new Date(item.createdAt).toLocaleTimeString('en-US', {
               hour: 'numeric',
@@ -126,8 +187,10 @@ export default function ChatScreen() {
             senderName={isOutgoing ? undefined : otherUser?.name}
             senderAvatar={isOutgoing ? undefined : otherUser?.photoURL}
             showAvatar={!isOutgoing}
+            onRetry={handleRetry}
+            onDelete={handleDelete}
           />
-          {isOutgoing && (
+          {isOutgoing && item.status !== 'failed' && (
             <View className="self-end mr-4 -mt-1">
               <ReadReceipt status={item.status === 'sending' ? 'sent' : item.status} />
             </View>
@@ -135,17 +198,17 @@ export default function ChatScreen() {
         </View>
       );
     },
-    [user, otherUser],
+    [user, otherUser, handleRetry, handleDelete],
   );
 
   return (
     <Screen safe={false}>
-      <View style={{ flex: 1, paddingTop: insets.top }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          className="flex-1"
-          keyboardVerticalOffset={0}
-        >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <View style={{ flex: 1, paddingTop: insets.top }}>
           {/* Header */}
           <ChatHeader
             title={otherUser?.name ?? 'Chat'}
@@ -159,6 +222,7 @@ export default function ChatScreen() {
             avatar={otherUser?.photoURL}
             isOnline={otherUser?.isOnline}
             onBackPress={() => router.back()}
+            onAvatarPress={handleViewProfile}
             rightActions={
               <View className="flex-row">
                 <IconButton
@@ -207,11 +271,12 @@ export default function ChatScreen() {
           )}
 
           {/* Composer */}
-          <View style={{ paddingBottom: insets.bottom }}>
-            <MessageComposer onSend={handleSend} />
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+          <MessageComposer
+            onSend={handleSend}
+            onUploadAttachment={handleUploadAttachment}
+          />
+        </View>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
