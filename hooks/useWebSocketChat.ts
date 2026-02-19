@@ -5,7 +5,7 @@
 // If WS drops, the chat screen falls back to a Firestore
 // onSnapshot listener (see useMessages + chat screen).
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { wsClient } from '@/lib/wsClient';
@@ -18,7 +18,8 @@ const WS_URL = process.env.EXPO_PUBLIC_WS_URL ?? 'ws://localhost:8080';
 export function useWebSocketChat(conversationId?: string) {
   const { firebaseUser } = useAuth();
   const qc = useQueryClient();
-  const connected = useRef(false);
+  // Use state (not ref) so consumers re-render when connectivity changes
+  const [isConnected, setIsConnected] = useState(false);
 
   // ── Connect on mount ─────────────────────
   useEffect(() => {
@@ -26,19 +27,19 @@ export function useWebSocketChat(conversationId?: string) {
 
     firebaseUser.getIdToken().then((token) => {
       wsClient.connect(WS_URL, token);
-      connected.current = true;
+      setIsConnected(true);
       console.log('[WS] Connected and authenticated');
     });
 
     return () => {
       wsClient.disconnect();
-      connected.current = false;
+      setIsConnected(false);
     };
   }, [firebaseUser]);
 
   // ── Subscribe to specific conversation on mount ──
   useEffect(() => {
-    if (!conversationId || !connected.current) return;
+    if (!conversationId || !isConnected) return;
 
     console.log(`[WS] Subscribing to conversation: ${conversationId}`);
     wsClient.subscribe(conversationId);
@@ -47,7 +48,7 @@ export function useWebSocketChat(conversationId?: string) {
       console.log(`[WS] Unsubscribing from conversation: ${conversationId}`);
       wsClient.unsubscribe(conversationId);
     };
-  }, [conversationId, firebaseUser]);
+  }, [conversationId, isConnected, firebaseUser]);
 
   // ── Handle AppState (foreground / background) ──
   useEffect(() => {
@@ -148,5 +149,5 @@ export function useWebSocketChat(conversationId?: string) {
     [conversationId, firebaseUser],
   );
 
-  return { isConnected: connected.current, sendTyping };
+  return { isConnected, sendTyping };
 }

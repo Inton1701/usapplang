@@ -4,7 +4,11 @@ import { useRouter } from 'expo-router';
 import { registerForPushNotificationsAsync } from '../services/notificationService';
 import { saveTokenToFirebase } from '../services/firebaseService';
 import { useAuth } from '../hooks/useAuth';
-import { PushNotificationData } from '../types/notification';
+import { sendMessage } from '../services/messagesService';
+import {
+  PushNotificationData,
+  NOTIF_ACTION_REPLY,
+} from '../types/notification';
 
 interface UseNotificationsReturn {
   expoPushToken: string | undefined;
@@ -25,37 +29,63 @@ function useNotificationHandlerWithAuth(): void {
   const { user } = useAuth();
 
   useEffect(() => {
-    // Handle notification response (when user taps notification)
+    // Handle notification response (user taps OR uses inline quick-reply)
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
+      async (response) => {
         const data = response.notification.request.content.data as PushNotificationData;
-        console.log('Notification tapped, validating recipient...', data.chatId);
 
-        // SECURITY: Verify that current user is in this conversation
-        if (data.chatId && user?.uid) {
-          // Conversation ID format: uid1_uid2 (sorted alphabetically)
-          // Extract participants from the conversation ID
-          const participants = data.chatId.split('_');
-          const isCurrentUserInConversation = participants.includes(user.uid);
+        // ── SECURITY: both branches require the user to be a conversation participant ──
+        if (!data.chatId || !user?.uid) return;
 
-          if (!isCurrentUserInConversation) {
-            console.warn(
-              'SECURITY: User attempted to access conversation they are not in.',
-              `Current user: ${user.uid}, Conversation participants: ${participants.join(', ')}`
-            );
-            // Don't navigate — this is a security violation
-            return;
-          }
-
-          console.log('User verified as participant. Navigating...');
-          router.push({
-            pathname: '/(chat)/[conversationId]',
-            params: {
-              conversationId: data.chatId,
-              otherUid: data.senderId,
-            },
-          });
+        const participants = data.chatId.split('_');
+        if (!participants.includes(user.uid)) {
+          console.warn(
+            'SECURITY: User attempted to act on a conversation they are not in.',
+            `Current user: ${user.uid}, Conversation: ${data.chatId}`,
+          );
+          return;
         }
+
+        // ── Quick-reply action ─────────────────────────────────────────────────────
+        if (response.actionIdentifier === NOTIF_ACTION_REPLY) {
+          // `userText` is populated by expo-notifications when a TextInput action fires
+          const replyText = (response as Notifications.NotificationResponse & { userText?: string }).userText?.trim();
+          if (!replyText) return;
+
+          console.log('[QuickReply] Sending reply to', data.chatId);
+          try {
+            await sendMessage({
+              conversationId: data.chatId,
+              senderId: user.uid,
+              text: replyText,
+              localId: `qr_${Date.now()}`,
+            });
+
+            // Show a local confirmation so the user knows the reply was sent
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: data.senderName ? `Replied to ${data.senderName}` : 'Reply sent',
+                body: replyText,
+                data: {},
+              },
+              trigger: null,
+            });
+          } catch (err) {
+            console.error('[QuickReply] Failed to send:', err);
+          }
+          // Do NOT navigate — the user chose to stay in the current screen
+          return;
+        }
+
+        // ── Default tap: navigate into the conversation ────────────────────────────
+        console.log('Notification tapped, navigating to conversation…', data.chatId);
+        router.push({
+          pathname: '/(chat)/[conversationId]',
+          params: {
+            conversationId: data.chatId,
+            otherUid: data.senderId,
+          },
+        });
       }
     );
 

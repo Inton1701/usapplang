@@ -36,7 +36,10 @@ import { useWebSocketChat } from '@/hooks/useWebSocketChat';
 import { useUserPresence } from '@/hooks/useUserPresence';
 import { onMessagesSnapshot } from '@/services/messagesService';
 import { formatLastSeen } from '@/utils/format';
+import { useQueryClient } from '@tanstack/react-query';
+import { QK } from '@/constants';
 import type { Message, User, MessageAttachment } from '@/types';
+import { useChatHead } from '@/providers/ChatHeadProvider';
 
 export default function ChatScreen() {
   const { conversationId, otherUid } = useLocalSearchParams<{
@@ -46,6 +49,21 @@ export default function ChatScreen() {
   const { user } = useAuth();
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
+  const { setOpenConversation, showBubble } = useChatHead();
+
+  // ── Chat head: suppress bubble while this screen is open ──
+  useEffect(() => {
+    if (conversationId) {
+      setOpenConversation(conversationId);
+    }
+    return () => {
+      // Re-enable chat head when leaving the screen; the provider
+      // will auto-show the bubble if there are still unread messages.
+      setOpenConversation(null);
+      showBubble();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
   // SECURITY: Verify current user is a participant in this conversation
   const isUserInConversation = conversationId && user?.uid
@@ -150,14 +168,38 @@ export default function ChatScreen() {
   const { isConnected, sendTyping } = useWebSocketChat(conversationId);
 
   // ── Firebase fallback when WS is not connected ──
+  // Also runs in parallel as a safety net even when WS is up,
+  // so messages sent from the mini chat window (Firestore-only path)
+  // always appear immediately on the recipient's screen.
+  const qcFallback = useQueryClient();
   useEffect(() => {
-    if (isConnected || !isUserInConversation) return; // WS handles it, or user not authorized
-    const unsub = onMessagesSnapshot(conversationId, () => {
-      // The snapshot listener triggers a refetch for fresh data
-      // We don't directly set messages — TanStack is the source of truth.
+    if (!isUserInConversation) return;
+    const unsub = onMessagesSnapshot(conversationId, (incoming) => {
+      // Merge snapshot messages into the TanStack cache.
+      // We prepend any message whose id isn't already in page 0.
+      qcFallback.setQueryData(QK.MESSAGES(conversationId), (old: any) => {
+        if (!old) {
+          // Cache is empty — seed it with what Firestore gave us
+          return {
+            pages: [{ messages: incoming, lastDoc: null }],
+            pageParams: [undefined],
+          };
+        }
+        const existingIds = new Set(
+          old.pages.flatMap((p: any) => p.messages.map((m: Message) => m.id)),
+        );
+        const fresh = incoming.filter((m) => !existingIds.has(m.id));
+        if (fresh.length === 0) return old; // nothing new, no re-render
+        const newPages = [...old.pages];
+        newPages[0] = {
+          ...newPages[0],
+          messages: [...fresh, ...newPages[0].messages],
+        };
+        return { ...old, pages: newPages };
+      });
     });
     return unsub;
-  }, [conversationId, isConnected, isUserInConversation]);
+  }, [conversationId, isUserInConversation, qcFallback]);
 
   // ── Typing indicator state ──
   const [peerTyping, setPeerTyping] = useState(false);

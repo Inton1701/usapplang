@@ -22,17 +22,21 @@ export async function sendPushNotification(
     to: recipientToken,
     sound: 'default' as const,
     title: message.senderName,
-    body: message.text.length > 100 
-      ? message.text.substring(0, 100) + '...' 
+    body: message.text.length > 100
+      ? message.text.substring(0, 100) + '...'
       : message.text,
     data: {
       messageId: message.messageId,
       chatId: message.chatId,
       senderId: message.senderId,
+      senderName: message.senderName,
       type: 'message',
     },
     priority: 'high' as const,
-    channelId: 'default',
+    // Route into our Messages channel on Android (enables heads-up + inline reply)
+    channelId: 'messages',
+    // Attach the MESSAGE category so iOS/Android shows the Reply action button
+    categoryId: 'MESSAGE',
     badge: 1,
   };
 

@@ -120,6 +120,19 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(admin)/users')}
               color="#f59e0b"
             />
+            <SettingsRow
+              icon="copy-outline"
+              label="Copy Push Token"
+              onPress={async () => {
+                if (expoPushToken) {
+                  await Clipboard.setStringAsync(expoPushToken);
+                  Alert.alert('Success', 'Push token copied to clipboard');
+                } else {
+                  Alert.alert('Error', 'Push token not available');
+                }
+              }}
+              color="#8b5cf6"
+            />
           </View>
         </>
       )}
