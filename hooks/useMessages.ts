@@ -114,17 +114,29 @@ export function useSendMessage(conversationId: string) {
     },
 
     onSuccess: (data, _params, context) => {
-      // Replace optimistic message with server message
+      // Replace optimistic message with server message.
+      // Guard: the snapshot listener may have already injected the real message
+      // (identified by data.id). In that case just remove the optimistic entry
+      // to avoid duplicates.
       if (context?.optimisticMsg) {
         const key = QK.MESSAGES(conversationId);
         qc.setQueryData(key, (old: any) => {
           if (!old) return old;
-          const newPages = old.pages.map((page: any) => ({
-            ...page,
-            messages: page.messages.map((m: Message) =>
-              m.id === context.optimisticMsg.id ? data : m,
-            ),
-          }));
+          const newPages = old.pages.map((page: any) => {
+            const realAlreadyPresent = page.messages.some(
+              (m: Message) => m.id === data.id && m.id !== context.optimisticMsg.id,
+            );
+            return {
+              ...page,
+              messages: realAlreadyPresent
+                ? // Remove orphaned optimistic — real message already in list
+                  page.messages.filter((m: Message) => m.id !== context.optimisticMsg.id)
+                : // Normal path: swap optimistic → real
+                  page.messages.map((m: Message) =>
+                    m.id === context.optimisticMsg.id ? data : m,
+                  ),
+            };
+          });
           return { ...old, pages: newPages };
         });
       }

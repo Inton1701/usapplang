@@ -35,6 +35,13 @@ const DRAG_SCALE = 1.1;
 
 const SPRING = { damping: 18, stiffness: 200, mass: 0.8 } as const;
 
+/** Diameter of the dismiss-target circle */
+const CLOSE_ZONE_SIZE   = 68;
+/** Gap between dismiss target and bottom safe-area edge */
+const CLOSE_ZONE_BOTTOM = 44;
+/** Max distance (bubble-center → zone-center) that triggers magnetism */
+const CLOSE_THRESHOLD   = CLOSE_ZONE_SIZE * 0.95;
+
 // ─── Component ─────────────────────────────────
 
 export function FloatingChatHead() {
@@ -47,6 +54,7 @@ export function FloatingChatHead() {
     snappedSide,
     expandMiniWindow,
     collapseToBubble,
+    hide,
     setSnappedSide,
   } = useChatHead();
 
@@ -64,7 +72,11 @@ export function FloatingChatHead() {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
   // 0 = snapped right, 1 = snapped left  (drives badge X animation)
-  const sideValue = useSharedValue<0 | 1>(snappedSide === 'right' ? 0 : 1);
+  const sideValue  = useSharedValue<0 | 1>(snappedSide === 'right' ? 0 : 1);
+  /** 0 → 1 while user is actively dragging */
+  const isDragging = useSharedValue(0);
+  /** 0 → 1 when bubble hovers over the dismiss target */
+  const overClose  = useSharedValue(0);
 
   // ── Re-snap on dimension change ──────────────
   useEffect(() => {
@@ -99,20 +111,60 @@ export function FloatingChatHead() {
     [setSnappedSide],
   );
 
+  // ── Close zone helpers ───────────────────────
+  // Recalculated every render so dimension updates are reflected.
+  const czCX = W / 2;
+  const czCY = H - insets.bottom - CLOSE_ZONE_BOTTOM - CLOSE_ZONE_SIZE / 2;
+
+  const handleClose = useCallback(() => {
+    // Small delay lets the collapse animation finish before unmounting.
+    setTimeout(hide, 160);
+  }, [hide]);
+
   // ── Gestures ─────────────────────────────────
   const panGesture = Gesture.Pan()
     .minDistance(6)
     .onBegin(() => {
       startX.value = x.value;
       startY.value = y.value;
-      scale.value = withSpring(DRAG_SCALE, { damping: 12, stiffness: 240 });
+      scale.value   = withSpring(DRAG_SCALE, { damping: 12, stiffness: 240 });
+      isDragging.value = 1;
     })
     .onUpdate((e) => {
-      x.value = clamp(startX.value + e.translationX, snapLeft, snapRight);
-      y.value = clamp(startY.value + e.translationY, minY, maxY);
+      // Raw (unclamped) bubble position
+      const rawX = startX.value + e.translationX;
+      const rawY = startY.value + e.translationY;
+      // Distance from bubble centre to close-zone centre
+      const bCX = rawX + BUBBLE_SIZE / 2;
+      const bCY = rawY + BUBBLE_SIZE / 2;
+      const dx = bCX - czCX;
+      const dy = bCY - czCY;
+      const dist2   = dx * dx + dy * dy;
+      const hovering = dist2 < CLOSE_THRESHOLD * CLOSE_THRESHOLD;
+      overClose.value = hovering ? 1 : 0;
+      if (hovering) {
+        // Magnetic pull: spring toward close zone centre
+        x.value = withSpring(czCX - BUBBLE_SIZE / 2, { damping: 25, stiffness: 500 });
+        y.value = withSpring(czCY - BUBBLE_SIZE / 2, { damping: 25, stiffness: 500 });
+        scale.value = withSpring(0.72, { damping: 20, stiffness: 400 });
+      } else {
+        x.value = clamp(rawX, snapLeft, snapRight);
+        y.value = clamp(rawY, minY, maxY);
+        scale.value = withSpring(DRAG_SCALE, { damping: 12, stiffness: 240 });
+      }
     })
     .onEnd(() => {
-      const midX = x.value + BUBBLE_SIZE / 2;
+      isDragging.value = 0;
+      if (overClose.value) {
+        // Shrink-and-fade into the close zone, then dismiss
+        scale.value   = withTiming(0,   { duration: 180 });
+        opacity.value = withTiming(0,   { duration: 180 });
+        overClose.value = 0;
+        runOnJS(handleClose)();
+        return;
+      }
+      overClose.value = 0;
+      const midX  = x.value + BUBBLE_SIZE / 2;
       const toRight = midX > W / 2;
       sideValue.value = toRight ? 0 : 1;
       x.value = withSpring(toRight ? snapRight : snapLeft, {
@@ -123,6 +175,9 @@ export function FloatingChatHead() {
       runOnJS(notifySnapSide)(toRight ? 'right' : 'left');
     })
     .onFinalize(() => {
+      // Safety net: always reset if gesture is cancelled
+      isDragging.value = 0;
+      overClose.value  = 0;
       scale.value = withSpring(1, SPRING);
     });
 
@@ -162,51 +217,91 @@ export function FloatingChatHead() {
     return { transform: [{ translateX: badgeX }] };
   });
 
+  // ── Close-zone animated styles ───────────────
+  /** Entire target fades + scales in from bottom when dragging starts */
+  const closeZoneFadeStyle = useAnimatedStyle(() => ({
+    opacity:   withTiming(isDragging.value ? 1   : 0,   { duration: 220 }),
+    transform: [{ scale: withTiming(isDragging.value ? 1 : 0.4, { duration: 220 }) }],
+  }));
+
+  /** Circle changes colour and pulses when the bubble hovers over it */
+  const closeZoneCircleStyle = useAnimatedStyle(() => ({
+    backgroundColor: withTiming(
+      overClose.value ? '#E41E3F' : 'rgba(20,20,20,0.55)',
+      { duration: 150 },
+    ),
+    borderColor: withTiming(
+      overClose.value ? '#ff6b6b' : 'rgba(255,255,255,0.75)',
+      { duration: 150 },
+    ),
+    transform: [{ scale: withSpring(overClose.value ? 1.22 : 1, SPRING) }],
+  }));
+
   if (visibility === 'hidden' || !activePeer) return null;
 
   const { user: peer } = activePeer;
   const avatarUri = peer.photoURL ?? peer.photos?.[0];
 
   return (
-    <GestureDetector gesture={gesture}>
-      {/*
-        Wrapper is intentionally wider than the circle so the outside
-        badge has room. No overflow:hidden — badge must be visible.
-      */}
+    <>
+      {/* ── Dismiss target — floats up from bottom while dragging ── */}
       <Animated.View
-        style={[styles.wrapper, wrapperStyle, elevationStyle]}
-        accessibilityRole="button"
-        accessibilityLabel={`Chat with ${peer.name}. ${totalUnread} unread`}
+        pointerEvents="none"
+        style={[
+          styles.closeZoneWrap,
+          {
+            // Position centred horizontally above the bottom safe area
+            bottom: insets.bottom + CLOSE_ZONE_BOTTOM,
+            left:   W / 2 - CLOSE_ZONE_SIZE / 2,
+          },
+          closeZoneFadeStyle,
+        ]}
       >
-        {/* ── Circle ── */}
-        <View style={styles.circle}>
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatar} resizeMode="cover" />
-          ) : (
-            <View style={styles.avatarFallback}>
-              <Text style={styles.initials}>
-                {peer.name
-                  .split(' ')
-                  .map((w) => w[0])
-                  .join('')
-                  .toUpperCase()
-                  .slice(0, 2)}
-              </Text>
-            </View>
-          )}
-          {peer.isOnline && <View style={styles.onlineRing} />}
-        </View>
-
-        {/* ── Badge — outside the circle ── */}
-        {totalUnread > 0 && (
-          <Animated.View style={[styles.badge, badgeAnimStyle]}>
-            <Text style={styles.badgeText}>
-              {totalUnread > 99 ? '99+' : String(totalUnread)}
-            </Text>
-          </Animated.View>
-        )}
+        <Animated.View style={[styles.closeZoneCircle, closeZoneCircleStyle]}>
+          <Text style={styles.closeZoneIcon}>✕</Text>
+        </Animated.View>
       </Animated.View>
-    </GestureDetector>
+
+      <GestureDetector gesture={gesture}>
+        {/*
+          Wrapper is intentionally wider than the circle so the outside
+          badge has room. No overflow:hidden — badge must be visible.
+        */}
+        <Animated.View
+          style={[styles.wrapper, wrapperStyle, elevationStyle]}
+          accessibilityRole="button"
+          accessibilityLabel={`Chat with ${peer.name}. ${totalUnread} unread`}
+        >
+          {/* ── Circle ── */}
+          <View style={styles.circle}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatar} resizeMode="cover" />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.initials}>
+                  {peer.name
+                    .split(' ')
+                    .map((w: string) => w[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </Text>
+              </View>
+            )}
+            {peer.isOnline && <View style={styles.onlineRing} />}
+          </View>
+
+          {/* ── Badge — outside the circle ── */}
+          {totalUnread > 0 && (
+            <Animated.View style={[styles.badge, badgeAnimStyle]}>
+              <Text style={styles.badgeText}>
+                {totalUnread > 99 ? '99+' : String(totalUnread)}
+              </Text>
+            </Animated.View>
+          )}
+        </Animated.View>
+      </GestureDetector>
+    </>
   );
 }
 
@@ -289,5 +384,30 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     lineHeight: 12,
+  },
+  // ── Dismiss target ─────────────────────────────────
+  closeZoneWrap: {
+    position: 'absolute',
+    width:  CLOSE_ZONE_SIZE,
+    height: CLOSE_ZONE_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9998,
+  },
+  closeZoneCircle: {
+    width:  CLOSE_ZONE_SIZE,
+    height: CLOSE_ZONE_SIZE,
+    borderRadius: CLOSE_ZONE_SIZE / 2,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // initial bg set via closeZoneCircleStyle animated style
+  },
+  closeZoneIcon: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 26,
+    textAlign: 'center',
   },
 });

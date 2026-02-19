@@ -175,27 +175,53 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!isUserInConversation) return;
     const unsub = onMessagesSnapshot(conversationId, (incoming) => {
-      // Merge snapshot messages into the TanStack cache.
-      // We prepend any message whose id isn't already in page 0.
       qcFallback.setQueryData(QK.MESSAGES(conversationId), (old: any) => {
         if (!old) {
-          // Cache is empty — seed it with what Firestore gave us
           return {
             pages: [{ messages: incoming, lastDoc: null }],
             pageParams: [undefined],
           };
         }
-        const existingIds = new Set(
+
+        // Build look-ups for deduplication and optimistic replacement
+        const existingIds = new Set<string>(
           old.pages.flatMap((p: any) => p.messages.map((m: Message) => m.id)),
         );
-        const fresh = incoming.filter((m) => !existingIds.has(m.id));
-        if (fresh.length === 0) return old; // nothing new, no re-render
-        const newPages = [...old.pages];
-        newPages[0] = {
-          ...newPages[0],
-          messages: [...fresh, ...newPages[0].messages],
-        };
-        return { ...old, pages: newPages };
+        // localId → optimistic id  (e.g. 'tmp_1234' → 'tmp_1234')
+        const localIdToOptimisticId = new Map<string, string>();
+        old.pages.forEach((p: any) =>
+          p.messages.forEach((m: Message) => {
+            if (m.localId) localIdToOptimisticId.set(m.localId, m.id);
+          }),
+        );
+
+        let pages = old.pages.map((p: any) => ({ ...p, messages: [...p.messages] }));
+        let changed = false;
+
+        for (const msg of incoming) {
+          if (existingIds.has(msg.id)) continue; // already present, nothing to do
+
+          // Does this real message correspond to an optimistic placeholder?
+          const optimisticId = msg.localId
+            ? localIdToOptimisticId.get(msg.localId)
+            : undefined;
+
+          if (optimisticId) {
+            // Replace the temp entry in-place so there is no flicker and no duplicate
+            pages = pages.map((p: any) => ({
+              ...p,
+              messages: p.messages.map((m: Message) =>
+                m.id === optimisticId ? msg : m,
+              ),
+            }));
+          } else {
+            // Genuinely new message — prepend to page 0
+            pages[0] = { ...pages[0], messages: [msg, ...pages[0].messages] };
+          }
+          changed = true;
+        }
+
+        return changed ? { ...old, pages } : old;
       });
     });
     return unsub;
